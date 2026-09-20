@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 const services = [
   ["شراء بدلة تخرج", "بدلات ساتان وموبرة مع خيارات تخصيص مناسبة ليوم التخرج."],
@@ -65,17 +66,16 @@ export default function HomePage() {
             </div>
           </div>
           <div className="heroVisual" aria-hidden="true">
-            <div className="heroEdition">2026</div>
-            <div className="gownIllustration">
-              <div className="capTop" />
-              <div className="capBand" />
-              <div className="gownBody">
-                <span className="gownLine gownLineOne" />
-                <span className="gownLine gownLineTwo" />
-              </div>
-              <div className="stole stoleLeft" />
-              <div className="stole stoleRight" />
-            </div>
+            <Image
+              className="heroPhoto"
+              src="/hero_graduation.png"
+              alt=""
+              fill
+              priority
+              sizes="(max-width: 900px) 88vw, 390px"
+            />
+            <div className="heroPhotoShade" />
+            <div className="heroEdition">SEASON 2026</div>
             <div className="heroVisualMeta">
               <span>GOWN</span>
               <span>STOLE</span>
