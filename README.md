@@ -19,3 +19,6 @@ npm run dev
 ```
 
 Set `NEXT_PUBLIC_SITE_URL` to the production domain when known.
+
+
+Standalone web repository for the Next.js application.
