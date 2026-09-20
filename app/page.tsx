@@ -65,7 +65,22 @@ export default function HomePage() {
             </div>
           </div>
           <div className="heroVisual" aria-hidden="true">
-            <span>2026</span>
+            <div className="heroEdition">2026</div>
+            <div className="gownIllustration">
+              <div className="capTop" />
+              <div className="capBand" />
+              <div className="gownBody">
+                <span className="gownLine gownLineOne" />
+                <span className="gownLine gownLineTwo" />
+              </div>
+              <div className="stole stoleLeft" />
+              <div className="stole stoleRight" />
+            </div>
+            <div className="heroVisualMeta">
+              <span>GOWN</span>
+              <span>STOLE</span>
+              <span>CUSTOM</span>
+            </div>
           </div>
         </section>
 
