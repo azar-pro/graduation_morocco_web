@@ -277,10 +277,35 @@ export default function HomePageClient() {
       </main>
 
       <footer className="appFooter">
-        <Image src="/logo_mark.png" width={100} height={100} alt="" />
-        <strong>Graduation Morocco</strong><p>{t.footerTagline}</p>
-        <nav><Link href="#about">{t.aboutUs}</Link><Link href="#contact">{t.contactUs}</Link><Link href="/order">{t.startOrderNow}</Link></nav>
-        <p className="appFooterCredit">{t.footerCredit} <span>MAQTA Studio</span></p>
+        <div className="appFooterMain">
+          <div className="appFooterBrandBlock">
+            <Image src="/logo.png" width={210} height={92} alt="Graduation Morocco" />
+            <p>{t.footerTagline}</p>
+          </div>
+
+          <div className="appFooterColumn">
+            <strong>{isArabic ? "روابط سريعة" : "Quick links"}</strong>
+            <nav>
+              <Link href="/">{t.home}</Link>
+              <Link href="#about">{t.aboutUs}</Link>
+              <Link href="#services">{t.services}</Link>
+            </nav>
+          </div>
+
+          <div className="appFooterColumn">
+            <strong>{isArabic ? "الطلب والمساعدة" : "Orders & help"}</strong>
+            <nav>
+              <Link href="/order">{t.startOrderNow}</Link>
+              <Link href="/track-order">{t.tracking}</Link>
+              <Link href="#contact">{t.contactUs}</Link>
+            </nav>
+          </div>
+        </div>
+
+        <div className="appFooterBottom">
+          <p>© 2026 Graduation Morocco. {isArabic ? "جميع الحقوق محفوظة." : "All rights reserved."}</p>
+          <p className="appFooterCredit">{t.footerCredit} <span>MAQTA Studio</span></p>
+        </div>
       </footer>
 
       <nav className="appBottomNav" aria-label={t.home}>
