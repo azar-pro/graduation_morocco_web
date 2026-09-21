@@ -1134,3 +1134,40 @@
   .summaryTotal{font-size:19px}
   .submitOrder{min-height:50px;font-size:15px}
 }
+
+
+/* Order upload + toggle + intro polish */
+.orderPage{padding-top:44px}
+.orderIntro{margin-bottom:22px}
+.orderIntro h1{font-size:clamp(32px,4.1vw,48px)}
+.orderIntro>p:last-child{font-size:15px}
+
+.printingCard{transition:border-color .18s ease,background-color .18s ease,box-shadow .18s ease}
+.printingCard.isActive{background:#fffdf8;border-color:rgba(201,164,92,.52);box-shadow:0 10px 24px rgba(201,164,92,.07)}
+.toggleRow{position:relative;cursor:pointer;gap:9px!important}
+.toggleInput{position:absolute!important;inline-size:1px!important;block-size:1px!important;opacity:0;pointer-events:none}
+.toggleVisual{width:36px;height:21px;border-radius:999px;background:#d8dde1;border:1px solid rgba(13,34,56,.10);padding:2px;display:inline-flex;align-items:center;flex:0 0 auto;transition:background-color .18s ease,border-color .18s ease}
+.toggleVisual>span{width:15px;height:15px;border-radius:50%;background:#fff;box-shadow:0 2px 5px rgba(13,34,56,.18);transform:translateX(0);transition:transform .18s ease}
+.toggleInput:checked + .toggleVisual{background:#c9a45c;border-color:#c9a45c}
+.toggleInput:checked + .toggleVisual>span{transform:translateX(-15px)}
+.toggleInput:focus-visible + .toggleVisual{outline:3px solid rgba(201,164,92,.22);outline-offset:2px}
+
+.uploadField{display:grid;gap:6px}
+.uploadLabel{font-size:13.5px;font-weight:800}
+.customUpload{min-height:48px;border:1px dashed rgba(201,164,92,.48);border-radius:12px;background:#fffdf9;display:flex!important;align-items:center;justify-content:center;gap:9px;padding:10px 13px;color:#0d2238;font-size:13px!important;font-weight:850!important;cursor:pointer;transition:border-color .18s ease,background-color .18s ease,transform .18s ease}
+.customUpload:hover{border-color:rgba(201,164,92,.85);background:#fbf4e6}
+.customUpload input{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}
+.customUpload.isDisabled{opacity:.58;cursor:not-allowed}
+.uploadIcon{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:#0d2238;color:#fff;font-size:14px;line-height:1}
+.referenceUpload{justify-content:flex-start;min-height:54px}
+.referenceUpload strong{margin-inline-start:auto;min-width:40px;text-align:center;color:#a47b31;font-size:12px}
+.uploadDone{margin-top:2px;color:#2f6b3f;font-size:12.5px;font-weight:850}
+
+@media(max-width:680px){
+  .orderPage{padding-top:28px}
+  .orderIntro{margin-bottom:17px}
+  .orderIntro h1{font-size:29px}
+  .orderIntro>p:last-child{font-size:13.5px}
+  .customUpload{min-height:46px;font-size:12.5px!important}
+  .referenceUpload{min-height:50px}
+}
