@@ -233,12 +233,13 @@ export default function OrderClient() {
             ]>).map(([key, label]) => {
               const option = draft[key];
               return (
-                <article className="printingCard" key={key}>
+                <article className={option.enabled ? "printingCard isActive" : "printingCard"} key={key}>
                   <label className="toggleRow">
-                    <input type="checkbox" checked={option.enabled}
+                    <input className="toggleInput" type="checkbox" checked={option.enabled}
                       onChange={(e) => patchPrinting(key, e.target.checked
                         ? { enabled: true, type: option.type || "text" }
                         : { enabled: false, type: "", text: "", logoPath: null })} />
+                    <span className="toggleVisual" aria-hidden="true"><span /></span>
                     <strong>{label}</strong>
                   </label>
                   {option.enabled && (
@@ -257,11 +258,16 @@ export default function OrderClient() {
                         </label>
                       )}
                       {(option.type === "logo" || option.type === "both") && (
-                        <label>رفع الشعار
-                          <input type="file" accept="image/*" disabled={uploading}
-                            onChange={(e) => uploadLogo(key, e.target.files?.[0])} />
+                        <div className="uploadField">
+                          <span className="uploadLabel">رفع الشعار</span>
+                          <label className={uploading ? "customUpload isDisabled" : "customUpload"}>
+                            <input type="file" accept="image/*" disabled={uploading}
+                              onChange={(e) => uploadLogo(key, e.target.files?.[0])} />
+                            <span className="uploadIcon" aria-hidden="true">↑</span>
+                            <span>{uploading ? "جاري الرفع…" : option.logoPath ? "استبدال الشعار" : "اختر صورة الشعار"}</span>
+                          </label>
                           {option.logoPath && <span className="uploadDone">تم رفع الشعار ✓</span>}
-                        </label>
+                        </div>
                       )}
                     </>
                   )}
@@ -273,8 +279,13 @@ export default function OrderClient() {
           <div className="referenceBox">
             <h3>صور مرجعية</h3>
             <p>يمكنك رفع حتى 4 صور للتصميم المطلوب.</p>
-            <input type="file" accept="image/*" disabled={uploading || draft.referenceImages.length >= 4}
-              onChange={(e) => addReference(e.target.files?.[0])} />
+            <label className={(uploading || draft.referenceImages.length >= 4) ? "customUpload referenceUpload isDisabled" : "customUpload referenceUpload"}>
+              <input type="file" accept="image/*" disabled={uploading || draft.referenceImages.length >= 4}
+                onChange={(e) => addReference(e.target.files?.[0])} />
+              <span className="uploadIcon" aria-hidden="true">↑</span>
+              <span>{uploading ? "جاري رفع الصورة…" : draft.referenceImages.length >= 4 ? "تم رفع الحد الأقصى" : "اختر صورة"}</span>
+              <strong>{draft.referenceImages.length}/4</strong>
+            </label>
             {draft.referenceImages.length > 0 && (
               <div className="referenceList">
                 {draft.referenceImages.map((url, index) => (
