@@ -842,3 +842,43 @@
     line-height:1.62;
   }
 }
+
+
+/* Mobile order-steps compact polish */
+@media(max-width:620px){
+  .appSteps{
+    gap:9px;
+  }
+  .appStepCard{
+    padding:17px 16px 16px;
+    border-radius:17px;
+    box-shadow:0 8px 20px rgba(13,34,56,.032);
+  }
+  .appStepTop{
+    gap:6px;
+  }
+  .appStepIcon{
+    width:36px;
+    height:36px;
+    border-radius:11px;
+  }
+  .appStepIcon .appIcon{
+    width:19px;
+    height:19px;
+  }
+  .appStepNumber{
+    width:34px;
+    height:34px;
+    font-size:12.5px;
+  }
+  .appStepCard h3{
+    margin:10px 0 4px;
+    font-size:16.5px;
+    line-height:1.35;
+  }
+  .appStepCard p{
+    max-width:300px;
+    font-size:13px;
+    line-height:1.58;
+  }
+}
