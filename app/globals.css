@@ -1171,3 +1171,14 @@
   .customUpload{min-height:46px;font-size:12.5px!important}
   .referenceUpload{min-height:50px}
 }
+
+
+/* Printing cards independent desktop heights */
+@media(min-width:681px){
+  .printingGrid{
+    align-items:start;
+  }
+  .printingCard{
+    align-self:start;
+  }
+}
