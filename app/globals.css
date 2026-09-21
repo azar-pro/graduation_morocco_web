@@ -33,15 +33,20 @@
 /* Homepage aligned with the original Flutter HomeScreen */
 .appHome{--navy:#0d2238;--navy-light:#173a5a;--gold:#c9a45c;--gold-light:#e5c987;--cream:#faf8f3;--sand:#f1e7d5;--muted:#65717d;background:var(--cream);color:var(--navy);min-height:100vh;padding-bottom:0}
 .appHeader{min-height:80px;padding:9px 24px;display:flex;align-items:center;gap:18px;background:var(--cream);position:relative;z-index:20}
-.appLogo{display:flex;align-items:center;margin-left:auto}
-.appLogo img{width:180px;height:62px;object-fit:contain}
+.appLogo{display:flex;align-items:center;margin-inline-end:auto}
+.appLogo img{object-fit:contain}
+.appLogoFull{width:180px;height:62px}
+.appLogoMark{display:none;width:52px;height:52px}
 .appNav{display:flex;align-items:center;gap:4px;font-weight:800}
 .appNav>a{padding:10px 12px;border-radius:12px}
 .appNav>a:not(.appContactButton):hover{background:rgba(13,34,56,.05)}
-.appContactButton{border:1px solid var(--gold)!important;padding:9px 15px!important}
-.appLanguage{min-width:58px;height:42px;border:1px solid rgba(201,164,92,.65);border-radius:14px;display:grid;place-items:center;padding:0 14px;font-weight:900;direction:ltr}
+.appContactButton{border:1px solid var(--gold)!important;padding:9px 15px!important;display:flex;align-items:center;gap:7px}
+.appContactButton .appIcon{width:18px;height:18px}
+.appLanguage{min-width:58px;height:42px;border:1px solid rgba(201,164,92,.65);border-radius:14px;display:grid;place-items:center;padding:0 14px;font:inherit;font-weight:900;color:var(--navy);background:transparent;direction:ltr;cursor:pointer}
 .appMobileHeaderActions{display:none;align-items:center;gap:8px}
-.appMenuIcon{font-size:29px;color:var(--navy);line-height:1}
+.appMenuIcon{width:44px;height:44px;border:0;background:transparent;font:inherit;font-size:29px;color:var(--navy);line-height:1;cursor:pointer}
+.appIcon{display:block;width:1em;height:1em;flex:0 0 auto}
+.appLanguage:focus-visible,.appMenuIcon:focus-visible,.appMobileMenu button:focus-visible,.appHome a:focus-visible{outline:3px solid rgba(201,164,92,.65);outline-offset:3px}
 
 .appHero{height:540px;margin:0 18px;border-radius:32px;overflow:hidden;position:relative;box-shadow:0 14px 28px rgba(0,0,0,.15)}
 .appHeroImage{object-fit:cover;object-position:center}
@@ -56,10 +61,13 @@
 .appPrimaryButton{background:var(--gold);color:var(--navy)}
 .appOutlineLight{border:1px solid rgba(255,255,255,.7);color:#fff}
 .appHeroBenefits{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:13px;color:var(--gold-light);font-weight:800}
+.appHeroBenefits span{display:inline-flex;align-items:center;gap:5px}
+.appHeroBenefits .appIcon{width:17px;height:17px}
 
 .appTrust{margin:18px 18px 8px;padding:15px 20px;text-align:center;background:var(--sand);border:1px solid rgba(201,164,92,.25);border-radius:18px;font-weight:700}
 
 .appSection{padding:0 18px}
+.appSection,.appCta{scroll-margin-top:20px}
 .appSectionTitle{padding:32px 22px 18px;text-align:center}
 .appSectionTitle h2{margin:0;color:var(--navy);font-size:28px;font-weight:900}
 .appSectionTitle p{margin:7px auto 0;color:var(--muted);font-size:14px;line-height:1.7;max-width:760px}
@@ -75,7 +83,8 @@
 
 .appServiceGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .appServiceCard{min-height:180px;padding:22px;background:var(--sand);border:1px solid rgba(201,164,92,.25);border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-.appServiceIcon{width:48px;height:48px;border-radius:15px;background:var(--gold);display:grid;place-items:center;color:var(--navy);font-size:24px;font-weight:900}
+.appServiceIcon{width:48px;height:48px;border-radius:15px;background:var(--gold);display:grid;place-items:center;color:var(--navy);font-size:25px;font-weight:900}
+.appServiceIcon .appIcon{width:26px;height:26px}
 .appServiceCard h3{margin:12px 0 5px;color:var(--navy);font-size:18px;font-weight:900}
 .appServiceCard p{margin:0;color:var(--muted);line-height:1.55}
 .appQuickLinks{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:20px 0 4px}
@@ -85,6 +94,7 @@
 .appStepCard{min-height:170px;padding:18px;background:#fff;border:1px solid rgba(201,164,92,.2);border-radius:20px;text-align:center}
 .appStepTop{display:flex;align-items:center;justify-content:center;gap:10px}
 .appStepIcon{font-size:25px;color:var(--navy)}
+.appStepIcon .appIcon{width:27px;height:27px}
 .appStepNumber{width:40px;height:40px;border-radius:50%;background:var(--gold);display:grid;place-items:center;color:var(--navy);font-weight:900}
 .appStepCard h3{margin:15px 0 5px;color:var(--navy);font-size:17px;font-weight:900}
 .appStepCard p{margin:0;color:var(--muted);line-height:1.5}
@@ -95,7 +105,8 @@
 
 .appDeliveryGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .appDeliveryCard{margin:6px;padding:22px;background:#fff;border:1px solid rgba(201,164,92,.2);border-radius:20px;text-align:center}
-.appDeliveryIcon{font-size:30px;color:var(--gold)}
+.appDeliveryIcon{font-size:30px;color:var(--gold);display:flex;justify-content:center}
+.appDeliveryIcon .appIcon{width:32px;height:32px}
 .appDeliveryCard h3{margin:10px 0 5px;color:var(--navy);font-size:17px;font-weight:900}
 .appDeliveryCard p{margin:0;color:var(--muted);line-height:1.5}
 
@@ -115,13 +126,23 @@
 .appFooter nav a:last-child{color:var(--gold-light)}
 
 .appBottomNav{display:none}
+.appMenuBackdrop{position:fixed;z-index:200;inset:0;background:rgba(13,34,56,.46);display:flex;align-items:flex-end;padding-top:70px}
+.appMobileMenu{width:100%;max-height:calc(100vh - 70px);overflow:auto;background:var(--cream);border-radius:28px 28px 0 0;padding:20px 22px calc(22px + env(safe-area-inset-bottom));box-shadow:0 -18px 50px rgba(13,34,56,.2)}
+.appMobileMenuHead{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:10px;border-bottom:1px solid rgba(13,34,56,.08)}
+.appMobileMenuHead strong{color:var(--navy);font-size:17px;direction:ltr}
+.appMobileMenuHead button{width:42px;height:42px;border:1px solid rgba(13,34,56,.12);border-radius:50%;background:#fff;color:var(--navy);font:inherit;font-size:27px;line-height:1;cursor:pointer}
+.appMobileMenu nav{display:grid;margin-top:7px}
+.appMobileMenu nav a{min-height:52px;padding:12px 5px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid rgba(13,34,56,.08);font-weight:800}
+.appMobileMenu nav span{color:var(--muted);font-size:22px}
+.appMobileOrder{margin-top:16px;min-height:48px;border-radius:14px;background:var(--gold);color:var(--navy);display:flex;align-items:center;justify-content:center;padding:12px 18px;font-weight:900}
 
 @media(max-width:900px){
   .appHeader{padding:9px 16px;min-height:70px}
-  .appLogo img{width:52px;height:52px;object-fit:contain}
+  .appLogoFull{display:none}
+  .appLogoMark{display:block}
   .appNav{display:none}
   .appMobileHeaderActions{display:flex}
-  .appLogo{margin-left:auto}
+  .appLogo{margin-inline-end:auto}
   .appHero{height:650px;margin:0 12px;border-radius:25px}
   .appHeroOverlay{background:linear-gradient(180deg,rgba(13,34,56,.04) 0%,rgba(13,34,56,.16) 42%,rgba(13,34,56,.84) 100%)}
   .appHeroCopy{left:0;right:0;top:auto;bottom:0;transform:none;width:100%;padding:25px 24px 32px}
@@ -130,11 +151,11 @@
   .appAboutCard{grid-template-columns:1fr}
   .appServiceGrid{grid-template-columns:1fr}
   .appSteps{grid-template-columns:1fr 1fr}
-  .appBottomNav{position:fixed;z-index:100;right:0;left:0;bottom:0;height:68px;background:#fff;border-top:1px solid rgba(201,164,92,.18);display:grid;grid-template-columns:repeat(4,1fr);box-shadow:0 -8px 24px rgba(13,34,56,.08)}
+  .appBottomNav{position:fixed;z-index:100;right:0;left:0;bottom:0;height:calc(68px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);background:#fff;border-top:1px solid rgba(201,164,92,.18);display:grid;grid-template-columns:repeat(4,1fr);box-shadow:0 -8px 24px rgba(13,34,56,.08)}
   .appBottomNav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--muted);font-size:11px;font-weight:800}
   .appBottomNav a:first-child{color:var(--navy)}
-  .appBottomNav span{font-size:20px;line-height:1}
-  .appFooter{padding-bottom:94px}
+  .appBottomNav .appIcon{width:21px;height:21px}
+  .appFooter{padding-bottom:calc(94px + env(safe-area-inset-bottom))}
 }
 
 @media(max-width:620px){
