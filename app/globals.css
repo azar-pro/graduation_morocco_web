@@ -191,3 +191,320 @@
   .appWhy h2,.appCta h2{font-size:26px}
   .appWhy p,.appCta p{font-size:15.5px}
 }
+
+
+/* Premium visual refinement — Hero + opening section */
+.appHome{
+  --premium-ink:#0a1c2f;
+  --premium-gold:#c8a052;
+  --premium-gold-soft:#ecd89f;
+  --premium-paper:#fbf8f1;
+}
+.appHero{
+  height:clamp(560px,68vh,720px);
+  margin:0 22px;
+  border-radius:34px;
+  border-color:rgba(229,201,135,.24);
+  box-shadow:0 28px 74px rgba(8,25,42,.20),0 1px 0 rgba(255,255,255,.24) inset;
+}
+.appHero:after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  border-radius:inherit;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.055);
+}
+.appHeroImage{
+  filter:saturate(.9) contrast(1.03);
+  transform:scale(1.008);
+}
+.appHeroOverlay{
+  background:
+    radial-gradient(circle at 23% 39%,rgba(201,164,92,.10),transparent 33%),
+    linear-gradient(90deg,rgba(7,24,40,.92) 0%,rgba(10,31,50,.82) 32%,rgba(13,34,56,.46) 55%,rgba(13,34,56,.08) 76%,rgba(13,34,56,0) 100%);
+}
+.appHeroCopy{
+  width:min(58%,760px);
+  padding:32px 58px 36px;
+}
+.appHeroMark{
+  width:122px;
+  height:122px;
+  filter:drop-shadow(0 12px 22px rgba(0,0,0,.16));
+}
+.appHeroBrand{
+  margin:2px 0 14px;
+  color:var(--premium-gold-soft);
+  font-size:13px;
+  letter-spacing:3.2px;
+}
+.appHeroCopy h1{
+  max-width:680px;
+  font-size:clamp(42px,4.1vw,60px);
+  line-height:1.14;
+  letter-spacing:-.025em;
+  text-wrap:balance;
+}
+.appHeroSubtitle{
+  max-width:620px;
+  margin-top:16px;
+  font-size:17px;
+  line-height:1.9;
+  color:rgba(255,255,255,.88);
+}
+.appHeroActions{
+  margin-top:24px;
+  gap:12px;
+}
+.appPrimaryButton,.appOutlineLight{
+  min-height:52px;
+  border-radius:999px;
+  padding-inline:27px;
+}
+.appPrimaryButton{
+  box-shadow:0 12px 30px rgba(201,164,92,.25),inset 0 1px 0 rgba(255,255,255,.35);
+}
+.appOutlineLight{
+  border-color:rgba(255,255,255,.52);
+  background:rgba(7,24,40,.22);
+}
+.appHeroBenefits{
+  position:relative;
+  margin-top:22px;
+  padding-top:17px;
+  gap:26px;
+  color:rgba(236,216,159,.95);
+  font-size:14px;
+}
+.appHeroBenefits:before{
+  content:"";
+  position:absolute;
+  top:0;
+  left:50%;
+  width:min(360px,72%);
+  height:1px;
+  transform:translateX(-50%);
+  background:linear-gradient(90deg,transparent,rgba(229,201,135,.55),transparent);
+}
+
+.appTrust{
+  max-width:1040px;
+  margin:22px auto 2px;
+  padding:18px 28px;
+  background:rgba(255,255,255,.60);
+  border-color:rgba(201,164,92,.22);
+  border-radius:16px;
+  box-shadow:0 12px 36px rgba(13,34,56,.035);
+  color:#31465a;
+  font-size:15px;
+  font-weight:650;
+}
+.appSectionTitle{
+  padding-top:56px;
+}
+.appSectionTitle h2{
+  font-size:clamp(31px,3vw,40px);
+  letter-spacing:-.025em;
+}
+.appSectionTitle h2:after{
+  content:"";
+  display:block;
+  width:38px;
+  height:2px;
+  margin:12px auto 0;
+  border-radius:999px;
+  background:linear-gradient(90deg,var(--gold),var(--gold-light));
+}
+.appSectionTitle p{
+  max-width:760px;
+  margin-top:12px;
+  color:#6b7681;
+}
+.appAboutCard{
+  max-width:1180px;
+  margin-inline:auto;
+  min-height:340px;
+  padding:46px 58px;
+  border-radius:30px;
+  background:
+    radial-gradient(circle at 16% 22%,rgba(201,164,92,.12),transparent 26%),
+    linear-gradient(135deg,#091d31 0%,#0d2943 58%,#173e60 100%);
+  box-shadow:0 24px 60px rgba(10,29,48,.15),inset 0 1px 0 rgba(255,255,255,.05);
+}
+.appAboutLogo{
+  position:relative;
+}
+.appAboutLogo:after{
+  content:"";
+  position:absolute;
+  width:150px;
+  height:150px;
+  border:1px solid rgba(229,201,135,.16);
+  border-radius:50%;
+}
+.appAboutLogo img{
+  position:relative;
+  z-index:1;
+  width:320px;
+  filter:drop-shadow(0 12px 24px rgba(0,0,0,.13));
+}
+.appAboutCopy h3{
+  font-size:32px;
+  color:#ead18f;
+}
+.appAboutCopy p{
+  max-width:620px;
+  margin-inline:auto;
+  color:rgba(255,255,255,.86);
+}
+.appPills{
+  margin-top:18px;
+}
+.appPills span{
+  padding:7px 14px;
+  background:rgba(255,255,255,.035);
+  border-color:rgba(229,201,135,.42);
+  color:#ecd99f;
+  font-size:13px;
+}
+
+@media(max-width:900px){
+  .appHero{
+    height:660px;
+    margin:0 12px;
+    border-radius:28px;
+  }
+  .appHeroOverlay{
+    background:
+      linear-gradient(180deg,rgba(8,25,42,.03) 0%,rgba(8,25,42,.10) 32%,rgba(8,25,42,.50) 58%,rgba(7,24,40,.94) 100%);
+  }
+  .appHeroCopy{
+    width:100%;
+    padding:28px 28px 34px;
+  }
+  .appHeroMark{
+    width:82px;
+    height:82px;
+  }
+  .appHeroCopy h1{
+    font-size:clamp(34px,6vw,44px);
+    max-width:620px;
+  }
+  .appHeroSubtitle{
+    max-width:560px;
+  }
+  .appTrust{
+    margin:18px 12px 0;
+  }
+  .appAboutCard{
+    max-width:none;
+  }
+}
+
+@media(max-width:620px){
+  .appHero{
+    height:590px;
+    margin:0 10px;
+    border-radius:24px;
+  }
+  .appHeroImage{
+    object-position:66% center;
+  }
+  .appHeroCopy{
+    padding:20px 18px 24px;
+  }
+  .appHeroMark{
+    width:68px;
+    height:68px;
+  }
+  .appHeroBrand{
+    margin-bottom:9px;
+    font-size:11px;
+    letter-spacing:2.6px;
+  }
+  .appHeroCopy h1{
+    font-size:30px;
+    line-height:1.18;
+  }
+  .appHeroSubtitle{
+    margin-top:10px;
+    max-width:360px;
+    font-size:14px;
+    line-height:1.72;
+  }
+  .appHeroActions{
+    width:min(100%,350px);
+    margin-top:16px;
+    display:grid;
+    grid-template-columns:1.08fr .92fr;
+    gap:8px;
+  }
+  .appPrimaryButton,.appOutlineLight{
+    min-height:46px;
+    padding:11px 14px;
+    font-size:13.5px;
+  }
+  .appHeroBenefits{
+    width:100%;
+    margin-top:15px;
+    padding-top:13px;
+    justify-content:center;
+    gap:10px 16px;
+    font-size:12.5px;
+  }
+  .appTrust{
+    margin:14px 10px 0;
+    padding:14px 18px;
+    border-radius:14px;
+    font-size:13.5px;
+    line-height:1.75;
+  }
+  .appSectionTitle{
+    padding:38px 14px 17px;
+  }
+  .appSectionTitle h2{
+    font-size:29px;
+  }
+  .appSectionTitle h2:after{
+    margin-top:9px;
+  }
+  .appSectionTitle p{
+    margin-top:10px;
+    font-size:14px;
+    line-height:1.75;
+  }
+  .appAboutCard{
+    margin-inline:0;
+    padding:24px 20px 27px;
+    gap:10px;
+    border-radius:24px;
+  }
+  .appAboutLogo{
+    min-height:108px;
+  }
+  .appAboutLogo:after{
+    width:105px;
+    height:105px;
+  }
+  .appAboutLogo img{
+    width:218px;
+    height:126px;
+  }
+  .appAboutCopy h3{
+    font-size:23px;
+  }
+  .appAboutCopy p{
+    margin-top:9px;
+    font-size:14.5px;
+    line-height:1.82;
+  }
+  .appPills{
+    gap:6px;
+    margin-top:14px;
+  }
+  .appPills span{
+    padding:6px 11px;
+    font-size:12px;
+  }
+}
