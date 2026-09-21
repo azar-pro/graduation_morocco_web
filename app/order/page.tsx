@@ -37,18 +37,35 @@ export default function OrderPage() {
       </main>
 
       <footer className="orderSiteFooter">
-        <div className="orderFooterBrand">
-          <Image src="/logo_mark.png" width={62} height={62} alt="" />
-          <div>
-            <strong>Graduation Morocco</strong>
+        <div className="orderFooterMain">
+          <div className="orderFooterBrand">
+            <Image src="/logo.png" width={180} height={78} alt="Graduation Morocco" />
             <p>تجربة تخرج أنيقة، واضحة ومصممة بعناية.</p>
           </div>
+
+          <div className="orderFooterColumn">
+            <strong>روابط سريعة</strong>
+            <nav aria-label="روابط سريعة">
+              <Link href="/">الرئيسية</Link>
+              <Link href="/order">طلب جديد</Link>
+              <Link href="/track-order">تتبع الطلب</Link>
+            </nav>
+          </div>
+
+          <div className="orderFooterColumn">
+            <strong>حول الخدمة</strong>
+            <nav aria-label="حول الخدمة">
+              <Link href="/#about">من نحن</Link>
+              <Link href="/#services">خدماتنا</Link>
+              <Link href="/#contact">تواصل معنا</Link>
+            </nav>
+          </div>
         </div>
-        <nav aria-label="روابط الفوتر">
-          <Link href="/">الرئيسية</Link>
-          <Link href="/track-order">تتبع الطلب</Link>
-        </nav>
-        <p className="orderFooterCredit">تصميم وتطوير <span>MAQTA Studio</span></p>
+
+        <div className="orderFooterBottom">
+          <p>© 2026 Graduation Morocco. جميع الحقوق محفوظة.</p>
+          <p className="orderFooterCredit">تصميم وتطوير <span>MAQTA Studio</span></p>
+        </div>
       </footer>
     </div>
   );
