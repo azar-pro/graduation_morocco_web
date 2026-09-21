@@ -1635,3 +1635,74 @@
     gap:6px;
   }
 }
+
+
+/* Footer final alignment polish */
+.appFooterBottom{
+  padding-top:17px;
+  padding-bottom:24px;
+  align-items:center;
+}
+.appFooterBottom p{
+  line-height:1.4;
+}
+.appFooterCredit{
+  display:flex;
+  align-items:center;
+  gap:5px;
+}
+
+.orderPage{
+  padding-bottom:28px;
+}
+.orderSiteFooter{
+  margin-top:0;
+}
+.orderFooterMain{
+  padding-top:38px;
+  padding-bottom:30px;
+}
+.orderFooterBrand img{
+  width:198px;
+  height:86px;
+}
+.orderFooterBrand p{
+  max-width:340px;
+  font-size:13px;
+}
+.orderFooterBottom{
+  padding-top:16px;
+  padding-bottom:22px;
+  align-items:center;
+}
+.orderFooterBottom p{
+  line-height:1.4;
+}
+.orderFooterCredit{
+  display:flex;
+  align-items:center;
+  gap:5px;
+}
+
+@media(max-width:760px){
+  .appFooterBottom{
+    padding-bottom:calc(90px + env(safe-area-inset-bottom));
+  }
+  .orderPage{
+    padding-bottom:18px;
+  }
+  .orderFooterMain{
+    padding-top:28px;
+    padding-bottom:22px;
+  }
+  .orderFooterBrand img{
+    width:172px;
+    height:74px;
+  }
+  .orderFooterBrand p{
+    font-size:12.5px;
+  }
+  .orderFooterBottom{
+    padding-bottom:18px;
+  }
+}
