@@ -62,6 +62,7 @@ export default function OrderClient() {
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [expandedPrinting, setExpandedPrinting] = useState<"rightShawl" | "leftShawl" | "backShawl" | "cap" | null>(null);
 
   useEffect(() => {
     Promise.all([loadProducts(), loadDeliveryCities(), loadShopSettings(), loadOrderRules()])
@@ -234,16 +235,36 @@ export default function OrderClient() {
               const option = draft[key];
               return (
                 <article className={option.enabled ? "printingCard isActive" : "printingCard"} key={key}>
-                  <label className="toggleRow">
-                    <input className="toggleInput" type="checkbox" checked={option.enabled}
-                      onChange={(e) => patchPrinting(key, e.target.checked
-                        ? { enabled: true, type: option.type || "text" }
-                        : { enabled: false, type: "", text: "", logoPath: null })} />
-                    <span className="toggleVisual" aria-hidden="true"><span /></span>
-                    <strong>{label}</strong>
-                  </label>
-                  {option.enabled && (
-                    <>
+                  <div className="printingHead">
+                    <label className="toggleRow">
+                      <input className="toggleInput" type="checkbox" checked={option.enabled}
+                        onChange={(e) => {
+                          const enabled = e.target.checked;
+                          patchPrinting(key, enabled
+                            ? { enabled: true, type: option.type || "text" }
+                            : { enabled: false, type: "", text: "", logoPath: null });
+                          setExpandedPrinting(enabled ? key : (expandedPrinting === key ? null : expandedPrinting));
+                        }} />
+                      <span className="toggleVisual" aria-hidden="true"><span /></span>
+                      <strong>{label}</strong>
+                    </label>
+                    {option.enabled && (
+                      <button className="printingExpand" type="button"
+                        aria-expanded={expandedPrinting === key}
+                        onClick={() => setExpandedPrinting((current) => current === key ? null : key)}>
+                        {expandedPrinting === key ? "إغلاق" : "تعديل"}
+                      </button>
+                    )}
+                  </div>
+                  {option.enabled && expandedPrinting !== key && (
+                    <p className="printingSummary">
+                      {option.type === "text" ? "نص" : option.type === "logo" ? "شعار" : "نص + شعار"}
+                      {option.text ? ` · ${option.text.slice(0, 28)}${option.text.length > 28 ? "…" : ""}` : ""}
+                      {option.logoPath ? " · تم رفع الشعار" : ""}
+                    </p>
+                  )}
+                  {option.enabled && expandedPrinting === key && (
+                    <div className="printingDetails">
                       <label>نوع الطباعة
                         <select value={option.type} onChange={(e) => patchPrinting(key, { type: e.target.value as PrintingOption["type"] })}>
                           <option value="text">نص</option>
@@ -269,7 +290,7 @@ export default function OrderClient() {
                           {option.logoPath && <span className="uploadDone">تم رفع الشعار ✓</span>}
                         </div>
                       )}
-                    </>
+                    </div>
                   )}
                 </article>
               );
