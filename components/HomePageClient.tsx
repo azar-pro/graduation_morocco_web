@@ -55,6 +55,7 @@ const copy = {
     readyTitle: "جاهز تبدأ؟",
     readyBody: "ابدأ طلبك الآن ودعنا نساعدك في جعل يوم تخرجك أكثر تميزًا.",
     footerTagline: "أناقة • تخصيص • تجربة تخرج تستحق الذكر",
+    footerCredit: "تصميم وتطوير",
     menuLabel: "فتح القائمة",
     closeMenu: "إغلاق القائمة",
   },
@@ -106,6 +107,7 @@ const copy = {
     readyTitle: "Ready to begin?",
     readyBody: "Start your order now and let us help make your graduation day even more special.",
     footerTagline: "Elegance • Personalization • A graduation experience worth remembering",
+    footerCredit: "Designed & developed by",
     menuLabel: "Open menu",
     closeMenu: "Close menu",
   },
@@ -278,6 +280,7 @@ export default function HomePageClient() {
         <Image src="/logo_mark.png" width={100} height={100} alt="" />
         <strong>Graduation Morocco</strong><p>{t.footerTagline}</p>
         <nav><Link href="#about">{t.aboutUs}</Link><Link href="#contact">{t.contactUs}</Link><Link href="/order">{t.startOrderNow}</Link></nav>
+        <p className="appFooterCredit">{t.footerCredit} <span>MAQTA Studio</span></p>
       </footer>
 
       <nav className="appBottomNav" aria-label={t.home}>
