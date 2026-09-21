@@ -1207,3 +1207,197 @@
   .submitOrder{min-height:52px;font-size:15px;box-shadow:0 12px 28px rgba(201,164,92,.22)}
   .privacyNote{font-size:12.5px;line-height:1.6;padding-bottom:0}
 }
+
+
+/* Shared branded header/footer for order route + MAQTA credit */
+.appFooterCredit{
+  width:min(520px,100%);
+  margin:20px auto 0!important;
+  padding-top:16px;
+  border-top:1px solid rgba(255,255,255,.10);
+  color:rgba(255,255,255,.52)!important;
+  font-size:12.5px!important;
+  letter-spacing:.01em;
+}
+.appFooterCredit span{
+  color:#e5c987;
+  font-weight:850;
+  direction:ltr;
+  unicode-bidi:isolate;
+}
+
+.orderRoute{
+  min-height:100vh;
+  background:#faf8f3;
+  color:#0d2238;
+}
+.orderSiteHeader{
+  position:sticky;
+  top:0;
+  z-index:80;
+  min-height:76px;
+  padding:8px 28px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:22px;
+  background:rgba(250,248,243,.92);
+  border-bottom:1px solid rgba(201,164,92,.16);
+  backdrop-filter:blur(14px);
+  box-shadow:0 8px 28px rgba(13,34,56,.035);
+}
+.orderBrand{
+  display:flex;
+  align-items:center;
+}
+.orderBrand img{
+  width:188px;
+  height:60px;
+  object-fit:contain;
+}
+.orderHeaderNav{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.orderHeaderNav a{
+  min-height:42px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:9px 15px;
+  border-radius:999px;
+  font-size:14px;
+  font-weight:850;
+}
+.orderHeaderNav a:first-child{
+  color:#0d2238;
+  background:rgba(13,34,56,.045);
+}
+.orderHeaderNav a:last-child{
+  border:1px solid rgba(201,164,92,.48);
+  background:#fffdf9;
+  color:#9d7734;
+}
+.orderSiteHeader a:focus-visible,.orderSiteFooter a:focus-visible{
+  outline:3px solid rgba(201,164,92,.28);
+  outline-offset:3px;
+}
+
+.orderSiteFooter{
+  margin-top:0;
+  padding:28px max(24px,calc((100vw - 920px)/2)) 26px;
+  display:grid;
+  grid-template-columns:1fr auto;
+  align-items:center;
+  gap:18px 28px;
+  background:linear-gradient(135deg,#091d31,#0d2943 65%,#173b59);
+  color:#fff;
+  border-top:1px solid rgba(229,201,135,.14);
+}
+.orderFooterBrand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.orderFooterBrand img{
+  width:58px;
+  height:58px;
+  object-fit:contain;
+}
+.orderFooterBrand strong{
+  display:block;
+  color:#e5c987;
+  font-size:16px;
+  direction:ltr;
+  text-align:right;
+}
+.orderFooterBrand p{
+  margin:3px 0 0;
+  color:rgba(255,255,255,.66);
+  font-size:12.5px;
+}
+.orderSiteFooter nav{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  font-size:13px;
+  font-weight:800;
+}
+.orderSiteFooter nav a:last-child{
+  color:#e5c987;
+}
+.orderFooterCredit{
+  grid-column:1/-1;
+  margin:0;
+  padding-top:14px;
+  border-top:1px solid rgba(255,255,255,.09);
+  text-align:center;
+  color:rgba(255,255,255,.48);
+  font-size:12px;
+}
+.orderFooterCredit span{
+  color:#e5c987;
+  font-weight:850;
+  direction:ltr;
+  unicode-bidi:isolate;
+}
+
+@media(max-width:680px){
+  .appFooterCredit{
+    margin-top:16px!important;
+    padding-top:13px;
+    font-size:11.5px!important;
+  }
+  .orderSiteHeader{
+    min-height:64px;
+    padding:6px 12px;
+    gap:10px;
+  }
+  .orderBrand img{
+    width:128px;
+    height:48px;
+  }
+  .orderHeaderNav{
+    gap:4px;
+  }
+  .orderHeaderNav a{
+    min-height:38px;
+    padding:7px 10px;
+    font-size:12px;
+  }
+  .orderPage{
+    padding-top:20px;
+  }
+  .orderSiteFooter{
+    padding:24px 16px 22px;
+    grid-template-columns:1fr;
+    justify-items:center;
+    text-align:center;
+    gap:14px;
+  }
+  .orderFooterBrand{
+    flex-direction:column;
+    gap:6px;
+  }
+  .orderFooterBrand img{
+    width:52px;
+    height:52px;
+  }
+  .orderFooterBrand strong{
+    text-align:center;
+    font-size:15px;
+  }
+  .orderFooterBrand p{
+    font-size:12px;
+  }
+  .orderSiteFooter nav{
+    gap:14px;
+    font-size:12.5px;
+  }
+  .orderFooterCredit{
+    width:100%;
+    padding-top:12px;
+    font-size:11.5px;
+  }
+}
