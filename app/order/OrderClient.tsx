@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState, type ReactNode } from "react";
 import { DateTime } from "luxon";
 import {
   DEFAULT_CITIES,
@@ -16,6 +16,15 @@ import { quoteOrder, submitOrder, type OrderDraft, type PrintingOption } from "@
 import { uploadGraduationImage } from "@/lib/image-upload";
 
 const TIMES = Array.from({ length: 13 }, (_, i) => `${String(i + 9).padStart(2, "0")}:00`);
+
+function StepHeading({ number, children }: { number: number; children: ReactNode }) {
+  return (
+    <h2 className="formStepTitle">
+      <span className="formStepNumber" aria-hidden="true">{number}</span>
+      <span>{children}</span>
+    </h2>
+  );
+}
 
 const initialDraft: OrderDraft = {
   orderType: "شراء",
@@ -152,7 +161,7 @@ export default function OrderClient() {
       {message && <p className="formError">{message}</p>}
 
       <section className="formSection">
-        <h2>1. نوع الطلب</h2>
+        <StepHeading number={1}>نوع الطلب</StepHeading>
         <div className="choiceGrid">
           {(["شراء", "كراء"] as const).map((value) => (
             <button type="button" key={value}
@@ -176,7 +185,7 @@ export default function OrderClient() {
       </section>
 
       <section className="formSection">
-        <h2>2. المنتج</h2>
+        <StepHeading number={2}>المنتج</StepHeading>
         <div className="fieldGrid">
           <label>المنتج
             <select value={draft.productType} onChange={(e) => patch("productType", e.target.value as OrderDraft["productType"])}>
@@ -208,7 +217,7 @@ export default function OrderClient() {
 
       {draft.orderType === "شراء" && (
         <section className="formSection">
-          <h2>3. الطباعة والتخصيص</h2>
+          <StepHeading number={3}>الطباعة والتخصيص</StepHeading>
           <p className="sectionHint">الطباعة اختيارية. طباعة الوشاح تضيف 40 درهم، وطباعة القبعة تضيف 40 درهم.</p>
           <div className="printingGrid">
             {([
@@ -282,7 +291,7 @@ export default function OrderClient() {
 
 
       <section className="formSection">
-        <h2>{draft.orderType === "شراء" ? "4" : "3"}. بياناتك</h2>
+        <StepHeading number={draft.orderType === "شراء" ? 4 : 3}>بياناتك</StepHeading>
         <div className="fieldGrid">
           <label>الاسم الكامل
             <input value={draft.fullName} onChange={(e) => patch("fullName", e.target.value)} maxLength={120} required />
@@ -295,7 +304,7 @@ export default function OrderClient() {
       </section>
 
       <section className="formSection">
-        <h2>{draft.orderType === "شراء" ? "5" : "4"}. الاستلام والتوصيل</h2>
+        <StepHeading number={draft.orderType === "شراء" ? 5 : 4}>الاستلام والتوصيل</StepHeading>
         <div className="choiceGrid">
           <button type="button" className={draft.deliveryMethod === "homeDelivery" ? "choice active" : "choice"}
             onClick={() => patch("deliveryMethod", "homeDelivery")}>توصيل للمنزل</button>
@@ -325,7 +334,7 @@ export default function OrderClient() {
       </section>
 
       <section className="formSection">
-        <h2>{draft.orderType === "شراء" ? "6" : "5"}. الدفع</h2>
+        <StepHeading number={draft.orderType === "شراء" ? 6 : 5}>الدفع</StepHeading>
         <div className="fieldGrid">
           <label>طريقة الدفع
             <select value={draft.paymentMethod} onChange={(e) => {
@@ -362,7 +371,7 @@ export default function OrderClient() {
       </section>
 
       <section className="formSection">
-        <h2>{draft.orderType === "شراء" ? "7" : "6"}. ملاحظات</h2>
+        <StepHeading number={draft.orderType === "شراء" ? 7 : 6}>ملاحظات</StepHeading>
         <label>ملاحظات الطلب
           <textarea value={draft.notes} onChange={(e) => patch("notes", e.target.value)} maxLength={1000} rows={3} />
         </label>
