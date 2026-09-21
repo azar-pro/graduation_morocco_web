@@ -802,3 +802,43 @@
     line-height:1.65;
   }
 }
+
+
+/* Mobile services density refinement */
+@media(max-width:620px){
+  .appServiceGrid{
+    gap:9px;
+  }
+  .appServiceCard{
+    min-height:0;
+    padding:18px 16px 17px;
+    border-radius:18px;
+    background:
+      linear-gradient(155deg,rgba(255,255,255,.82),rgba(247,240,226,.90)),
+      var(--sand);
+    box-shadow:0 9px 22px rgba(13,34,56,.035);
+  }
+  .appServiceCard:before{
+    height:2px;
+    opacity:.62;
+  }
+  .appServiceIcon{
+    width:46px;
+    height:46px;
+    border-radius:14px;
+  }
+  .appServiceIcon .appIcon{
+    width:21px;
+    height:21px;
+  }
+  .appServiceCard h3{
+    margin:9px 0 4px;
+    font-size:17.5px;
+    line-height:1.35;
+  }
+  .appServiceCard p{
+    max-width:330px;
+    font-size:13.5px;
+    line-height:1.62;
+  }
+}
