@@ -508,3 +508,94 @@
     font-size:12px;
   }
 }
+
+
+/* Mobile first-screen refinement after visual QA */
+@media(max-width:620px){
+  .appHeader{
+    min-height:68px;
+    padding:6px 12px;
+  }
+  .appLogoMark{
+    width:54px;
+    height:54px;
+  }
+  .appLanguage{
+    min-width:54px;
+    height:40px;
+    padding-inline:12px;
+    border-radius:12px;
+  }
+  .appMenuIcon{
+    width:40px;
+    height:40px;
+    font-size:27px;
+  }
+
+  .appHero{
+    height:540px;
+    min-height:540px;
+    margin-inline:8px;
+    border-radius:22px;
+  }
+  .appHeroImage{
+    object-position:68% center;
+  }
+  .appHeroOverlay{
+    background:
+      linear-gradient(180deg,rgba(8,25,42,.02) 0%,rgba(8,25,42,.08) 28%,rgba(8,25,42,.42) 50%,rgba(7,24,40,.92) 79%,rgba(7,24,40,.98) 100%);
+  }
+  .appHeroCopy{
+    bottom:18px;
+    padding:14px 16px 20px;
+  }
+  .appHeroMark{
+    width:58px;
+    height:58px;
+  }
+  .appHeroBrand{
+    margin:0 0 7px;
+    font-size:10.5px;
+    letter-spacing:2.3px;
+  }
+  .appHeroCopy h1{
+    max-width:340px;
+    font-size:28px;
+    line-height:1.16;
+  }
+  .appHeroSubtitle{
+    max-width:345px;
+    margin-top:8px;
+    font-size:13.5px;
+    line-height:1.65;
+  }
+  .appHeroActions{
+    width:min(100%,330px);
+    margin-top:13px;
+  }
+  .appPrimaryButton,.appOutlineLight{
+    min-height:43px;
+    font-size:13px;
+  }
+  .appHeroBenefits{
+    margin-top:12px;
+    padding-top:10px;
+    gap:8px 13px;
+    font-size:11.8px;
+  }
+  .appHeroBenefits:before{
+    width:66%;
+  }
+
+  .appBottomNav{
+    height:calc(66px + env(safe-area-inset-bottom));
+  }
+  .appBottomNav a{
+    gap:2px;
+    font-size:11px;
+  }
+  .appBottomNav .appIcon{
+    width:20px;
+    height:20px;
+  }
+}
