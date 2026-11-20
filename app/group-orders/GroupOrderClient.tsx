@@ -222,7 +222,18 @@ export default function GroupOrderClient() {
         </div>
 
         {draft.orderType === "كراء" && (
-          <p className="formNotice">مدة الكراء الحالية 24 ساعة من وقت الاستلام، ولا يتم إدخال أسماء الأفراد أو الطباعة في طلب الكراء.</p>
+          <div className="formNotice" role="status">
+            <strong>موعد إرجاع الكراء</strong>
+            {draft.deliveryDate ? (
+              <p dir="rtl">
+                {DateTime.fromISO(`${draft.deliveryDate}T${draft.deliveryTime}`, { zone: "Africa/Casablanca" })
+                  .plus({ hours: 24 }).toFormat("dd/MM/yyyy")} — الساعة{" "}
+                {DateTime.fromISO(`${draft.deliveryDate}T${draft.deliveryTime}`, { zone: "Africa/Casablanca" })
+                  .plus({ hours: 24 }).toFormat("HH:mm")}
+              </p>
+            ) : <p>اختر تاريخ ووقت الاستلام لعرض موعد الإرجاع.</p>}
+            <p>مدة الكراء 24 ساعة كاملة من وقت الاستلام. راجع الموعد أعلاه قبل إرسال الطلب. لا تُطلب أسماء الأفراد أو خيارات الطباعة في الكراء.</p>
+          </div>
         )}
       </section>
 
