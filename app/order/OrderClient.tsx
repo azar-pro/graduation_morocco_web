@@ -363,6 +363,20 @@ export default function OrderClient() {
             </select>
           </label>
         </div>
+        {draft.orderType === "كراء" && (
+          <div className="formNotice" role="status">
+            <strong>موعد إرجاع الكراء</strong>
+            {draft.deliveryDate ? (
+              <p>
+                {DateTime.fromISO(`${draft.deliveryDate}T${draft.deliveryTime}`, { zone: "Africa/Casablanca" })
+                  .plus({ hours: 24 }).toFormat("dd/MM/yyyy")} — الساعة{" "}
+                {DateTime.fromISO(`${draft.deliveryDate}T${draft.deliveryTime}`, { zone: "Africa/Casablanca" })
+                  .plus({ hours: 24 }).toFormat("HH:mm")}
+              </p>
+            ) : <p>اختر تاريخ ووقت الاستلام لعرض موعد الإرجاع.</p>}
+            <p>مدة الكراء 24 ساعة كاملة من وقت الاستلام. سيتم حفظ الموعد الظاهر أعلاه في طلبك.</p>
+          </div>
+        )}
       </section>
 
       <section className="formSection">

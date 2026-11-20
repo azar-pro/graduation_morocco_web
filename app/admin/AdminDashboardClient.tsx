@@ -25,6 +25,7 @@ const statusLabels: Record<string, string> = {
 };
 
 const statuses = Object.keys(statusLabels);
+const money = (value: number) => `${value.toFixed(0)} درهم`;
 
 export default function AdminDashboardClient() {
   const router = useRouter();
@@ -76,9 +77,26 @@ export default function AdminDashboardClient() {
     );
   }, [groups, search]);
 
-  const collected = orders
-    .filter((x) => x.status !== "cancelled")
-    .reduce((sum, x) => sum + Number(x.totalPrice ?? 0), 0);
+  // Financial totals deliberately exclude cancelled orders, matching the
+  // Android StatisticsService. Collected and outstanding are not order value.
+  const activeOrders = orders.filter((order) => order.status !== "cancelled");
+  const activeOrderValue = activeOrders.reduce(
+    (sum, order) => sum + Math.max(0, Number(order.totalPrice ?? 0) || 0),
+    0,
+  );
+  const amountPaid = activeOrders.reduce((sum, order) => {
+    const total = Math.max(0, Number(order.totalPrice ?? 0) || 0);
+    return sum + Math.min(total, Math.max(0, Number(order.amountPaid ?? 0) || 0));
+  }, 0);
+  const remainingAmount = activeOrders.reduce((sum, order) => {
+    const total = Math.max(0, Number(order.totalPrice ?? 0) || 0);
+    const paid = Math.min(total, Math.max(0, Number(order.amountPaid ?? 0) || 0));
+    const stored = order.remainingAmount;
+    const remaining = typeof stored === "number" && Number.isFinite(stored)
+      ? Math.min(total, Math.max(0, stored))
+      : Math.max(0, total - paid);
+    return sum + remaining;
+  }, 0);
 
   return (
     <AdminGuard>
@@ -122,8 +140,10 @@ export default function AdminDashboardClient() {
             <section id="overview" className="adminStats">
               <article><span>إجمالي الطلبات</span><strong>{orders.length}</strong></article>
               <article><span>طلبات جماعية</span><strong>{groups.length}</strong></article>
-              <article><span>قيد التنفيذ</span><strong>{orders.filter((x) => !["completed","cancelled"].includes(String(x.status))).length}</strong></article>
-              <article><span>قيمة الطلبات</span><strong>{collected.toFixed(0)} درهم</strong></article>
+              <article><span>قيد التنفيذ</span><strong>{orders.filter((x) => !["completed", "cancelled"].includes(String(x.status))).length}</strong></article>
+              <article><span>قيمة الطلبات النشطة</span><strong>{money(activeOrderValue)}</strong></article>
+              <article><span>المبلغ المحصّل</span><strong>{money(amountPaid)}</strong></article>
+              <article><span>المبلغ المتبقي</span><strong>{money(remainingAmount)}</strong></article>
             </section>
 
             <div className="adminSearch">
@@ -152,7 +172,7 @@ export default function AdminDashboardClient() {
                         <td>{String(order.fullName ?? "—")}</td>
                         <td dir="ltr">{String(order.phoneNumber ?? "—")}</td>
                         <td>{String(order.orderType ?? "—")}</td>
-                        <td>{Number(order.totalPrice ?? 0).toFixed(0)} درهم</td>
+                        <td>{money(Math.max(0, Number(order.totalPrice ?? 0) || 0))}</td>
                         <td>
                           <select
                             value={String(order.status ?? "received")}
