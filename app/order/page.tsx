@@ -19,6 +19,8 @@ export default function OrderPage() {
         </Link>
         <nav className="orderHeaderNav" aria-label="روابط صفحة الطلب">
           <Link href="/">الرئيسية</Link>
+          <Link href="/group-orders">الطلب الجماعي</Link>
+          <Link href="/contact">تواصل معنا</Link>
           <Link href="/track-order">تتبع الطلب</Link>
         </nav>
       </header>
@@ -49,6 +51,8 @@ export default function OrderPage() {
               <Link href="/">الرئيسية</Link>
               <Link href="/order">طلب جديد</Link>
               <Link href="/track-order">تتبع الطلب</Link>
+              <Link href="/group-orders">الطلب الجماعي</Link>
+              <Link href="/contact">تواصل معنا</Link>
             </nav>
           </div>
 
