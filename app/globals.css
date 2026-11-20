@@ -1796,3 +1796,17 @@
     width:min(100% - 32px,560px);
   }
 }
+
+
+/* Dedicated contact page */
+.contactPageGrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:900px;margin:0 auto}
+.contactPageCard{background:#fff;border:1px solid rgba(201,164,92,.3);border-radius:24px;padding:30px;box-shadow:0 14px 38px rgba(13,34,56,.06);display:flex;flex-direction:column;align-items:flex-start;gap:12px}
+.contactPageIcon{width:52px;height:52px;border-radius:16px;background:#f1e7d5;color:#a47b31;display:grid;place-items:center;font-size:26px}
+.contactPageCard h2{margin:0;font-size:25px}
+.contactPageCard p{margin:0;color:#65717d;line-height:1.9}
+.contactPageAction{display:inline-flex;align-items:center;justify-content:center;text-align:center;margin-top:8px;width:100%}
+.contactPagePhone{font-weight:900;letter-spacing:.04em;color:#0d2238;text-decoration:underline;text-underline-offset:4px}
+.contactPageInfo ul{padding-right:20px;margin:0;line-height:2.1}
+.contactPageLinks{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.contactPageLinks a{border:1px solid rgba(13,34,56,.16);border-radius:999px;padding:9px 13px;font-weight:800;font-size:14px}
+@media(max-width:680px){.contactPageGrid{grid-template-columns:1fr}.contactPageCard{padding:23px}}
