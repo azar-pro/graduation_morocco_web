@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SiteHeader from "@/components/SiteHeader";
 
 type Faq = { q: string; a: string };
 
@@ -35,7 +36,9 @@ export default function SeoLanding({
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
-      <main className="seoPage">
+      <div className="orderRoute" dir="rtl">
+        <SiteHeader />
+        <main className="seoPage">
         <section className="seoHero">
           <p className="eyebrow">{eyebrow}</p>
           <h1>{title}</h1>
@@ -73,7 +76,8 @@ export default function SeoLanding({
           <p>يمكنك إرسال الطلب مباشرة بدون إنشاء حساب.</p>
           <Link className="primaryButton" href="/order">ابدأ الآن</Link>
         </section>
-      </main>
+        </main>
+      </div>
     </>
   );
 }
