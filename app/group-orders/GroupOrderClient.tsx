@@ -144,8 +144,9 @@ export default function GroupOrderClient() {
       <div className="orderSuccess">
         <span className="successMark">✓</span>
         <h2>تم استلام الطلب الجماعي</h2>
-        <p>احتفظ برقم الطلب وشاركه مع المسؤول عن المجموعة.</p>
+        <p>احتفظ برقم الطلب لتتبعه لاحقًا، ويمكنك مشاركته مع أفراد المجموعة.</p>
         <strong dir="ltr">{success}</strong>
+        <a className="primaryButton" href="/track-order">تتبع الطلب الجماعي</a>
       </div>
     );
   }
