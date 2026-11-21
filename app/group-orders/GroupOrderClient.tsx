@@ -136,7 +136,7 @@ export default function GroupOrderClient() {
         <span className="eyebrow">{tr("طلبات المجموعات الكبيرة", "Large group orders")}</span>
         <h2>{tr("للطلبات التي تتجاوز 100 شخص", "For orders above 100 people")}</h2>
         <p>{tr("حتى ننسق احتياجات مجموعتكم بدقة، تواصل معنا مباشرة عبر WhatsApp وسنتابع معك تفاصيل الكمية والتصميم.", "To coordinate your group’s needs accurately, contact us on WhatsApp to discuss the quantity and design.")}</p>
-        <a className="submitOrder" href={`https://wa.me/212717208919?text=${encodeURIComponent(`السلام عليكم، أود تنسيق طلب جماعي يتجاوز 100 شخص. العدد المطلوب: ${draft.quantity}`) }`} target="_blank" rel="noopener noreferrer">{tr("تواصل معنا عبر WhatsApp", "Contact us on WhatsApp")}</a>
+        <a className="submitOrder" href={`https://wa.me/212717208919?text=${encodeURIComponent(`${isArabic ? "السلام عليكم، أود تنسيق طلب جماعي يتجاوز 100 شخص." : "Hello, I would like to arrange a group order for more than 100 people."} ${isArabic ? "العدد المطلوب:" : "Quantity:"} ${draft.quantity}`) }`} target="_blank" rel="noopener noreferrer">{tr("تواصل معنا عبر WhatsApp", "Contact us on WhatsApp")}</a>
         <button type="button" className="choice" onClick={() => changeQuantity(100)}>{tr("العودة إلى 100 شخص أو أقل", "Return to 100 people or fewer")}</button>
       </div>
     );
@@ -242,7 +242,7 @@ export default function GroupOrderClient() {
 
       <section className="formSection">
         <h2>{tr("مواصفات الثوب", "Outfit specifications")}</h2>
-        <p className="sectionHint">{tr("اختر {tr("نوع القماش", "Fabric")} و{tr("لون الوشاح", "Shawl colour")} الموحد لجميع أفراد المجموعة.", "Choose the fabric and the shawl colour to be used for the whole group.")}</p>
+        <p className="sectionHint">{tr("اختر نوع القماش ولون الوشاح الموحد لجميع أفراد المجموعة.", "Choose the fabric and the shawl colour to be used for the whole group.")}</p>
         <div className="fieldGrid">
           <label>
             نوع القماش
@@ -348,7 +348,7 @@ export default function GroupOrderClient() {
                     {option.enabled && <button className="printingExpand" type="button"
                       aria-expanded={expandedPrinting === key}
                       onClick={() => setExpandedPrinting((current) => current === key ? null : key)}>
-                      {expandedPrinting === key ? "إغلاق" : "تعديل"}
+                      {expandedPrinting === key ? tr("إغلاق", "Close") : tr("تعديل", "Edit")}
                     </button>}
                   </div>
                   {option.enabled && expandedPrinting === key && (
@@ -376,7 +376,7 @@ export default function GroupOrderClient() {
                                 catch (error) { setMessage(error instanceof Error ? error.message : "تعذر رفع الشعار."); }
                                 finally { setUploading(false); }
                               })(); }} />
-                            <span className="uploadIcon">↑</span><span>{option.logoPath ? "استبدال الشعار" : "اختر صورة الشعار"}</span>
+                            <span className="uploadIcon">↑</span><span>{option.logoPath ? tr("استبدال الشعار", "Replace logo") : tr("اختر صورة الشعار", "Choose logo image")}</span>
                           </label>
                           {option.logoPath && <span className="uploadDone">{tr("تم رفع الشعار ✓", "Logo uploaded ✓")}</span>}
                         </div>
@@ -412,7 +412,7 @@ export default function GroupOrderClient() {
       )}
 
       <section className="formSection">
-        <h2>{draft.orderType === "شراء" ? "6" : "3"}. {tr("الاستلام", "Pickup")} والتوصيل</h2>
+        <h2>{draft.orderType === "شراء" ? "6" : "3"}. {tr("الاستلام والتوصيل", "Collection and delivery")}</h2>
         <div className="choiceGrid">
           <button
             type="button"
@@ -486,8 +486,8 @@ export default function GroupOrderClient() {
                 {DateTime.fromISO(`${draft.deliveryDate}T${draft.deliveryTime}`, { zone: "Africa/Casablanca" })
                   .plus({ hours: 24 }).toFormat("HH:mm")}
               </p>
-            ) : <p>{tr("اختر تاريخ ووقت {tr("الاستلام", "Pickup")} لعرض موعد الإرجاع.", "Choose a collection date and time to see the return time.")}</p>}
-            <p>{tr("مدة الكراء 24 ساعة كاملة من وقت {tr("الاستلام", "Pickup")}. راجع الموعد أعلاه قبل إرسال الطلب. لا تُطلب أسماء الأفراد أو خيارات الطباعة في الكراء.", "The rental period is 24 hours from collection. Check the return time above before submitting. Member names and printing options are not required for rentals.")}</p>
+            ) : <p>{tr("اختر تاريخ ووقت الاستلام لعرض موعد الإرجاع.", "Choose a collection date and time to see the return time.")}</p>}
+            <p>{tr("مدة الكراء 24 ساعة كاملة من وقت الاستلام. راجع الموعد أعلاه قبل إرسال الطلب. لا تُطلب أسماء الأفراد أو خيارات الطباعة في الكراء.", "The rental period is 24 hours from collection. Check the return time above before submitting. Member names and printing options are not required for rentals.")}</p>
           </div>
         )}
       </section>
