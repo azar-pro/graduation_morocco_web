@@ -201,8 +201,8 @@ export default function GroupOrderClient() {
             <p>الصيغ المقبولة: .xlsx أو .xls أو .csv — بحد أقصى 10 MB. يجب أن يحتوي الملف على أسماء جميع أفراد المجموعة.</p>
             {excelFile ? (
               <div className="groupExcelAttached">
-                <span>✓ تم إرفاق الملف: <strong>{excelFile.name}</strong></span>
-                <button type="button" className="choice" onClick={() => setExcelFile(null)}>إزالة الملف والكتابة يدويًا</button>
+                <span>✓ تم إرفاق الملف: <strong>{excelFile.name}</strong><small>خانات الأسماء اليدوية مخفية مؤقتًا</small></span>
+                <button type="button" className="choice" onClick={() => setExcelFile(null)}>حذف الملف والعودة إلى كتابة الأسماء</button>
               </div>
             ) : (
               <label className={uploading ? "customUpload isDisabled" : "customUpload referenceUpload"}>
