@@ -281,7 +281,7 @@ export default function GroupOrderClient() {
             نوع القماش
             <select value={draft.fabric} onChange={(e) => setDraft((d) => ({ ...d, fabric: e.target.value as GroupOrderDraft["fabric"] }))}>
               <option value="ساتان">{tr("ساتان", "Satin")}</option>
-              <option value="موبرة">{tr("موبرة", "Velvet")}</option>
+              <option value="موبرة">{tr("موبرة", "Plush fabric")}</option>
             </select>
           </label>
           <label>
