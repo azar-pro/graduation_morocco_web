@@ -73,6 +73,7 @@ export default function GroupOrderClient() {
     const baseUnit = draft.orderType === "شراء"
       ? (draft.fabric === "ساتان" ? product.purchaseSatin : product.purchaseMoubara)
       : (draft.fabric === "ساتان" ? product.rentalSatin : product.rentalMoubara);
+    if (baseUnit <= 0) return null;
     const shawlPrint = draft.orderType === "شراء" && (draft.rightShawl.enabled || draft.leftShawl.enabled || draft.backShawl.enabled);
     const capPrint = draft.orderType === "شراء" && draft.productType !== "shawlOnly" && draft.cap.enabled;
     const unit = baseUnit + (shawlPrint ? 40 : 0) + (capPrint ? 40 : 0);
@@ -152,6 +153,9 @@ export default function GroupOrderClient() {
   return (
     <form className="orderForm" onSubmit={submit}>
       {message && <p className="formError">{message}</p>}
+      {(shop.maintenanceMode || !shop.acceptingOrders || (draft.orderType === "شراء" && !shop.purchaseEnabled) || (draft.orderType === "كراء" && !shop.rentalEnabled)) && (
+        <p className="formNotice" role="status">استقبال هذا النوع من الطلبات متوقف مؤقتًا. يرجى التواصل معنا لمعرفة موعد إعادة فتح الطلبات.</p>
+      )}
 
       <section className="formSection">
         <h2>1. نوع الطلب الجماعي</h2>
@@ -190,7 +194,6 @@ export default function GroupOrderClient() {
             <input
               type="number"
               min={5}
-              max={100}
               value={draft.quantity}
               onChange={(e) => changeQuantity(Number(e.target.value))}
               required
@@ -508,7 +511,7 @@ export default function GroupOrderClient() {
       {loadingPricing && <p className="formNotice">جاري تحميل الأسعار الحالية…</p>}
       {!loadingPricing && !priceEstimate && <p className="formError">تعذر احتساب السعر حاليًا. تحقق من اختيار المنتج والمدينة أو أعد تحميل الصفحة.</p>}
 
-      <button className="submitOrder" type="submit" disabled={submitting || uploading || loadingPricing || !priceEstimate}>
+      <button className="submitOrder" type="submit" disabled={submitting || uploading || loadingPricing || !priceEstimate || shop.maintenanceMode || !shop.acceptingOrders || (draft.orderType === "شراء" && !shop.purchaseEnabled) || (draft.orderType === "كراء" && !shop.rentalEnabled)}>
         {submitting ? "جاري إرسال الطلب…" : "إرسال الطلب الجماعي"}
       </button>
       <p className="privacyNote">لا يحتاج أي فرد من المجموعة إلى إنشاء حساب.</p>
