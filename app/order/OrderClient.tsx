@@ -222,7 +222,7 @@ export default function OrderClient() {
       {draft.orderType === "شراء" && (
         <section className="formSection">
           <StepHeading number={3}>{tr("الطباعة والتخصيص", "Printing and customization")}</StepHeading>
-          <p className="sectionHint">{tr("الطباعة اختيارية. طباعة الوشاح تضيف 40 {tr("درهم", "MAD")}، وطباعة القبعة تضيف 40 درهم.", "Printing is optional. Shawl printing adds 40 MAD, and cap printing adds 40 MAD.")}</p>
+          <p className="sectionHint">{tr("الطباعة اختيارية. طباعة الوشاح تضيف 40 درهم، وطباعة القبعة تضيف 40 درهم.", "Printing is optional. Shawl printing adds 40 MAD, and cap printing adds 40 MAD.")}</p>
           <div className="printingGrid">
             {([
               ["rightShawl", "الجهة اليمنى من الوشاح"],
@@ -255,20 +255,20 @@ export default function OrderClient() {
                       <button className="printingExpand" type="button"
                         aria-expanded={expandedPrinting === key}
                         onClick={() => setExpandedPrinting((current) => current === key ? null : key)}>
-                        {expandedPrinting === key ? "إغلاق" : "تعديل"}
+                        {expandedPrinting === key ? tr("إغلاق", "Close") : tr("تعديل", "Edit")}
                       </button>
                     )}
                   </div>
                   {option.enabled && expandedPrinting !== key && (
                     <p className="printingSummary">
-                      {option.type === "text" ? "نص" : option.type === "logo" ? "شعار" : "نص + شعار"}
+                      {option.type === "text" ? tr("نص", "Text") : option.type === "logo" ? tr("شعار", "Logo") : tr("نص + شعار", "Text + logo")}
                       {option.text ? ` · ${option.text.slice(0, 28)}${option.text.length > 28 ? "…" : ""}` : ""}
-                      {option.logoPath ? " · تم رفع الشعار" : ""}
+                      {option.logoPath ? ` · ${tr("تم رفع الشعار", "Logo uploaded")}` : ""}
                     </p>
                   )}
                   {option.enabled && expandedPrinting === key && (
                     <div className="printingDetails">
-                      <label>نوع الطباعة
+                      <label>{tr("نوع الطباعة", "Printing type")}
                         <select value={option.type} onChange={(e) => patchPrinting(key, { type: e.target.value as PrintingOption["type"] })}>
                           <option value="text">{tr("نص", "Text")}</option>
                           <option value="logo">{tr("شعار", "Logo")}</option>
@@ -288,7 +288,7 @@ export default function OrderClient() {
                             <input type="file" accept="image/*" disabled={uploading}
                               onChange={(e) => uploadLogo(key, e.target.files?.[0])} />
                             <span className="uploadIcon" aria-hidden="true">↑</span>
-                            <span>{uploading ? "جاري الرفع…" : option.logoPath ? "استبدال الشعار" : "اختر صورة الشعار"}</span>
+                            <span>{uploading ? tr("جاري الرفع…", "Uploading…") : option.logoPath ? tr("استبدال الشعار", "Replace logo") : tr("اختر صورة الشعار", "Choose logo image")}</span>
                           </label>
                           {option.logoPath && <span className="uploadDone">{tr("تم رفع الشعار ✓", "Logo uploaded ✓")}</span>}
                         </div>
@@ -307,7 +307,7 @@ export default function OrderClient() {
               <input type="file" accept="image/*" disabled={uploading || draft.referenceImages.length >= 4}
                 onChange={(e) => addReference(e.target.files?.[0])} />
               <span className="uploadIcon" aria-hidden="true">↑</span>
-              <span>{uploading ? "جاري رفع الصورة…" : draft.referenceImages.length >= 4 ? "تم رفع الحد الأقصى" : "اختر صورة"}</span>
+              <span>{uploading ? tr("جاري رفع الصورة…", "Uploading image…") : draft.referenceImages.length >= 4 ? tr("تم رفع الحد الأقصى", "Maximum reached") : tr("اختر صورة", "Choose image")}</span>
               <strong>{draft.referenceImages.length}/4</strong>
             </label>
             {draft.referenceImages.length > 0 && (
@@ -315,7 +315,7 @@ export default function OrderClient() {
                 {draft.referenceImages.map((url, index) => (
                   <button type="button" key={url}
                     onClick={() => setDraft((d) => ({ ...d, referenceImages: d.referenceImages.filter((_, i) => i !== index) }))}>
-                    صورة {index + 1} ×
+                    {tr("صورة", "Image")} {index + 1} ×
                   </button>
                 ))}
               </div>
