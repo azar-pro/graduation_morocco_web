@@ -4,6 +4,7 @@ import { FormEvent, useMemo, useState } from "react";
 import { DateTime } from "luxon";
 import { submitGroupOrder, type GroupOrderDraft, type GroupPrintingOption } from "@/lib/group-orders";
 import { uploadGraduationImage } from "@/lib/image-upload";
+import { uploadGroupExcel } from "@/lib/group-file-upload";
 
 const TIMES = Array.from({ length: 13 }, (_, i) => `${String(i + 9).padStart(2, "0")}:00`);
 const CITIES = ["Fes","Meknes","Sefrou","Ifrane","El Hajeb","Taza","Rabat","Casablanca","Marrakech","Tangier","Agadir","Oujda","Tetouan","Nador"];
@@ -34,6 +35,7 @@ export default function GroupOrderClient() {
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [excelFile, setExcelFile] = useState<{ name: string; url: string } | null>(null);
   const [expandedPrinting, setExpandedPrinting] = useState<"rightShawl" | "leftShawl" | "backShawl" | "cap" | null>(null);
 
   const minDate = useMemo(
@@ -193,24 +195,60 @@ export default function GroupOrderClient() {
       {draft.orderType === "شراء" && (
         <section className="formSection">
           <h2>4. أسماء أفراد المجموعة</h2>
-          <p className="sectionHint">أدخل اسمًا لكل فرد. يجب أن يطابق عدد الأسماء عدد أفراد الطلب.</p>
-          <div className="membersGrid">
-            {draft.members.map((member, index) => (
-              <label key={index}>
-                الفرد {index + 1}
-                <input
-                  value={member}
-                  onChange={(e) => setDraft((d) => {
-                    const members = [...d.members];
-                    members[index] = e.target.value;
-                    return { ...d, members };
-                  })}
-                  maxLength={120}
-                  required
-                />
+          <p className="sectionHint">يمكنك كتابة الأسماء يدويًا أو إرفاق ملف Excel يحتوي على اسم كل فرد في سطر مستقل. اختر طريقة واحدة فقط.</p>
+          <div className="referenceBox">
+            <h3>إرفاق ملف Excel (اختياري)</h3>
+            <p>الصيغ المقبولة: .xlsx أو .xls أو .csv — بحد أقصى 10 MB. يجب أن يحتوي الملف على أسماء جميع أفراد المجموعة.</p>
+            {excelFile ? (
+              <div className="groupExcelAttached">
+                <span>✓ تم إرفاق الملف: <strong>{excelFile.name}</strong></span>
+                <button type="button" className="choice" onClick={() => setExcelFile(null)}>إزالة الملف والكتابة يدويًا</button>
+              </div>
+            ) : (
+              <label className={uploading ? "customUpload isDisabled" : "customUpload referenceUpload"}>
+                <input type="file" accept=".xlsx,.xls,.csv" disabled={uploading}
+                  onChange={(e) => {
+                    const input = e.currentTarget;
+                    void (async () => {
+                      const file = input.files?.[0];
+                      if (!file) return;
+                      setUploading(true);
+                      setMessage("");
+                      try {
+                        const url = await uploadGroupExcel(file);
+                        setExcelFile({ name: file.name, url });
+                      } catch (error) {
+                        setMessage(error instanceof Error ? error.message : "تعذر رفع ملف Excel.");
+                      } finally {
+                        setUploading(false);
+                        input.value = "";
+                      }
+                    })();
+                  }} />
+                <span className="uploadIcon">↑</span>
+                <span>{uploading ? "جاري رفع الملف…" : "اختيار ملف Excel"}</span>
               </label>
-            ))}
+            )}
           </div>
+          {!excelFile && (
+            <>
+              <p className="sectionHint">أو اكتب أسماء الأفراد هنا، ويجب أن يطابق عددها عدد أفراد الطلب.</p>
+              <div className="membersGrid">
+                {draft.members.map((member, index) => (
+                  <label key={index}>
+                    الفرد {index + 1}
+                    <input value={member}
+                      onChange={(e) => setDraft((d) => {
+                        const members = [...d.members];
+                        members[index] = e.target.value;
+                        return { ...d, members };
+                      })}
+                      maxLength={120} required />
+                  </label>
+                ))}
+              </div>
+            </>
+          )}
         </section>
       )}
 
