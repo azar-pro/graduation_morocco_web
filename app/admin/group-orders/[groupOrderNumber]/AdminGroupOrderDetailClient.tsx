@@ -120,10 +120,40 @@ export default function AdminGroupOrderDetailClient(){
             </section>
           )}
 
+          {String(order.orderType)==="شراء" && (
+            <>
+              <section className="adminDetailCard">
+                <h2>المنتج والتخصيص الموحد</h2>
+                <dl>
+                  <div><dt>المنتج</dt><dd>{String(order.productType)==="shawlAndCap" ? "وشاح وقبعة فقط دون البدلة" : "بدلة تخرج كاملة"}</dd></div>
+                  <div><dt>نطاق التخصيص</dt><dd>تصميم واحد معمم على جميع أفراد المجموعة</dd></div>
+                </dl>
+                {(["rightShawl","leftShawl","backShawl","cap"] as const).map((key) => {
+                  const option = order[key] as {enabled?:boolean;type?:string;text?:string;logoPath?:string|null} | undefined;
+                  if (!option?.enabled) return null;
+                  const labels: Record<string,string> = {rightShawl:"الجانب الأيمن من الوشاح",leftShawl:"الجانب الأيسر من الوشاح",backShawl:"ظهر الوشاح",cap:"القبعة"};
+                  return <div className="adminGroupPrintRow" key={key}>
+                    <strong>{labels[key]}</strong>
+                    <p>{option.type==="text" ? "نص" : option.type==="logo" ? "شعار" : "نص + شعار"}{option.text ? ` — ${option.text}` : ""}</p>
+                    {option.logoPath && <a href={option.logoPath} target="_blank" rel="noopener noreferrer">عرض ملف الشعار</a>}
+                  </div>;
+                })}
+              </section>
+              <section className="adminDetailCard">
+                <h2>الصور المرجعية</h2>
+                {Array.isArray(order.referenceImages) && order.referenceImages.length ? (
+                  <div className="adminGroupReferenceGrid">
+                    {(order.referenceImages as string[]).map((url,index)=><a key={url} href={url} target="_blank" rel="noopener noreferrer">عرض الصورة {index+1}</a>)}
+                  </div>
+                ) : <p>لا توجد صور مرجعية مرفقة.</p>}
+              </section>
+            </>
+          )}
+
           {String(order.orderType)==="كراء" && (
             <section className="adminDetailCard">
               <h2>تفاصيل الكراء</h2>
-              <p>هذا الطلب لا يحتوي أسماء أفراد أو طباعة، والعودة بعد 24 ساعة من موعد الاستلام وفق قواعد الطلب الحالية.</p>
+              <p>هذا الطلب لا يحتوي أسماء أفراد أو تخصيص طباعة أو صور مرجعية، والعودة بعد 24 ساعة من موعد الاستلام وفق قواعد الطلب الحالية.</p>
             </section>
           )}
         </main>
