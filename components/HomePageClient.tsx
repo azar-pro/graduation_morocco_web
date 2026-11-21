@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type Locale = "ar" | "en";
 
@@ -142,11 +143,6 @@ export default function HomePageClient() {
 
 
   useEffect(() => {
-    document.documentElement.lang = locale;
-    document.documentElement.dir = isArabic ? "rtl" : "ltr";
-  }, [isArabic, locale]);
-
-  useEffect(() => {
     if (!menuOpen) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -159,11 +155,6 @@ export default function HomePageClient() {
       window.removeEventListener("keydown", closeOnEscape);
     };
   }, [menuOpen]);
-
-  const switchLocale = () => {
-    setLocale(isArabic ? "en" : "ar");
-    setMenuOpen(false);
-  };
 
   const services = [
     ["award", t.premiumIdentity, t.premiumIdentityBody],
@@ -198,7 +189,7 @@ export default function HomePageClient() {
         </nav>
 
         <div className="appMobileHeaderActions">
-          <button className="appLanguage" type="button" onClick={switchLocale} aria-label={isArabic ? "Switch to English" : "التبديل إلى العربية"}>{isArabic ? "EN" : "AR"}</button>
+          <button className="appLanguage" type="button" onClick={() => { toggleLocale(); setMenuOpen(false); }} aria-label={isArabic ? "Switch to English" : "التبديل إلى العربية"}>{isArabic ? "EN" : "AR"}</button>
           <button className="appMenuIcon" type="button" onClick={() => setMenuOpen(true)} aria-label={t.menuLabel} aria-expanded={menuOpen} aria-controls="app-mobile-menu">☰</button>
         </div>
       </header>
