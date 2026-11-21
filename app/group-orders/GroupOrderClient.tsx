@@ -42,12 +42,12 @@ export default function GroupOrderClient() {
   );
 
   function changeQuantity(value: number) {
-    const quantity = Math.max(5, Math.trunc(value || 5));
+    const quantity = Math.max(1, Math.trunc(value || 1));
     setDraft((d) => ({
       ...d,
       quantity,
       members: d.orderType === "شراء"
-        ? Array.from({ length: quantity }, (_, i) => d.members[i] ?? "")
+        ? Array.from({ length: Math.min(quantity, 100) }, (_, i) => d.members[i] ?? "")
         : [],
     }));
   }
@@ -146,7 +146,7 @@ export default function GroupOrderClient() {
             عدد الأفراد
             <input
               type="number"
-              min={5}
+              min={1}
               value={draft.quantity}
               onChange={(e) => changeQuantity(Number(e.target.value))}
               required
