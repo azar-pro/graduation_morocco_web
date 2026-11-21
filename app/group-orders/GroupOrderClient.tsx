@@ -285,7 +285,7 @@ export default function GroupOrderClient() {
           </label>
           <label>
             لون الوشاح
-            <input value={draft.shawlColor} onChange={(e) => setDraft((d) => ({ ...d, shawlColor: e.target.value }))} maxLength={80} required />
+            <input value={!isArabic && draft.shawlColor === "ذهبي" ? "Gold" : draft.shawlColor} onChange={(e) => setDraft((d) => ({ ...d, shawlColor: e.target.value }))} maxLength={80} required />
           </label>
         </div>
       </section>
@@ -299,7 +299,7 @@ export default function GroupOrderClient() {
             <p>{tr("الصيغ المقبولة: .xlsx أو .xls أو .csv — بحد أقصى 10 MB. يجب أن يحتوي الملف على أسماء جميع أفراد المجموعة.", "Accepted formats: .xlsx, .xls or .csv — maximum 10 MB. The file must include every group member’s name.")}</p>
             {excelFile ? (
               <div className="groupExcelAttached">
-                <span>✓ تم إرفاق الملف: <strong>{excelFile.name}</strong><small>{tr("خانات الأسماء اليدوية مخفية مؤقتًا", "Manual name fields are hidden while the file is attached.")}</small></span>
+                <span>✓ {tr("تم إرفاق الملف:", "File attached:")} <strong>{excelFile.name}</strong><small>{tr("خانات الأسماء اليدوية مخفية مؤقتًا", "Manual name fields are hidden while the file is attached.")}</small></span>
                 <button type="button" className="choice" onClick={() => setExcelFile(null)}>{tr("حذف الملف والعودة إلى كتابة الأسماء", "Remove file and enter names manually")}</button>
               </div>
             ) : (
@@ -375,7 +375,7 @@ export default function GroupOrderClient() {
                           setExpandedPrinting(enabled ? key : (expandedPrinting === key ? null : expandedPrinting));
                         }} />
                       <span className="toggleVisual" aria-hidden="true"><span /></span>
-                      <strong>{label}</strong>
+                      <strong>{tr(label, key === "rightShawl" ? "Right side of shawl" : key === "leftShawl" ? "Left side of shawl" : key === "backShawl" ? "Back of shawl" : "Cap")}</strong>
                     </label>
                     {option.enabled && <button className="printingExpand" type="button"
                       aria-expanded={expandedPrinting === key}
