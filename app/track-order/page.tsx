@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import TrackingClient from "./TrackingClient";
-import SiteHeader from "@/components/SiteHeader";
 import TrackOrderPageClient from "./TrackOrderPageClient";
 
 export const metadata: Metadata = {
