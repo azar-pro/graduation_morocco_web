@@ -39,16 +39,7 @@ export default function AdminGroupOrderDetailClient(){
   const [message,setMessage]=useState("");
   const [saving,setSaving]=useState(false);
 
-  async function refresh(){
-    setLoading(true);
-    try{
-      setOrder(await loadAdminGroupOrder(groupOrderNumber));
-    }catch{
-      setMessage("تعذر تحميل الطلب الجماعي.");
-    }finally{
-      setLoading(false);
-    }
-  }
+
 
   useEffect(()=>{
     loadAdminGroupOrder(groupOrderNumber)
