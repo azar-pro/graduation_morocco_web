@@ -246,7 +246,7 @@ export default function OrderClient() {
             </select>
           </label>
           <label>{tr("لون الوشاح", "Shawl colour")}
-            <input value={draft.shawlColor} onChange={(e) => patch("shawlColor", e.target.value)} maxLength={80} required />
+            <input value={!isArabic && draft.shawlColor === "ذهبي" ? "Gold" : draft.shawlColor} onChange={(e) => patch("shawlColor", e.target.value)} maxLength={80} required />
           </label>
         </div>
       </section>
@@ -282,7 +282,7 @@ export default function OrderClient() {
                           setExpandedPrinting(enabled ? key : (expandedPrinting === key ? null : expandedPrinting));
                         }} />
                       <span className="toggleVisual" aria-hidden="true"><span /></span>
-                      <strong>{label}</strong>
+                      <strong>{tr(label, key === "rightShawl" ? "Right side of shawl" : key === "leftShawl" ? "Left side of shawl" : key === "backShawl" ? "Back of shawl" : "Cap")}</strong>
                     </label>
                     {option.enabled && (
                       <button className="printingExpand" type="button"
