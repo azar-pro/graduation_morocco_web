@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import GroupOrdersPageClient from "./GroupOrdersPageClient";
-import SiteHeader from "@/components/SiteHeader";
 
 export const metadata: Metadata = {
   title: "طلبات بدلات التخرج الجماعية في المغرب",
