@@ -18,6 +18,39 @@ import { uploadGraduationImage } from "@/lib/image-upload";
 
 const TIMES = Array.from({ length: 13 }, (_, i) => `${String(i + 9).padStart(2, "0")}:00`);
 
+const ERROR_EN: Record<string, string> = {
+  "تعذر تحميل إعدادات الطلب الحالية.": "Could not load the current order settings.",
+  "تعذر رفع الشعار.": "Could not upload the logo.",
+  "تعذر رفع الصورة.": "Could not upload the image.",
+  "تعذر إرسال الطلب.": "Could not submit the order.",
+  "المنتج المحدد غير متاح حاليًا.": "The selected product is currently unavailable.",
+  "مدينة التوصيل المحددة غير متاحة حاليًا.": "Delivery is not available in the selected city.",
+  "اختر نوع الطباعة.": "Choose a printing type.",
+  "أدخل نص الطباعة المطلوب بشكل صحيح.": "Enter valid text for printing.",
+  "ارفع شعارًا صالحًا للطباعة.": "Upload a valid logo for printing.",
+  "استقبال الطلبات متوقف مؤقتًا.": "Order submissions are temporarily paused.",
+  "طلبات الشراء متوقفة مؤقتًا.": "Purchase orders are temporarily paused.",
+  "طلبات الكراء متوقفة مؤقتًا.": "Rental orders are temporarily paused.",
+  "أدخل الاسم الكامل بشكل صحيح.": "Enter your full name.",
+  "أدخل رقم هاتف مغربي صحيح يبدأ بـ05 أو 06 أو 07.": "Enter a valid Moroccan phone number starting with 05, 06 or 07.",
+  "اختر لون الوشاح.": "Choose a shawl colour.",
+  "أدخل عنوان التوصيل.": "Enter the delivery address.",
+  "اختر وقتًا صالحًا للموعد.": "Choose a valid time.",
+  "اختر تاريخ الاستلام أو التوصيل.": "Choose a collection or delivery date.",
+  "موعد الطلب غير صالح.": "The selected order date or time is invalid.",
+  "الطباعة والصور المرجعية متاحة للشراء فقط.": "Printing and reference images are available for purchases only.",
+  "يمكن رفع حتى 4 صور مرجعية صالحة.": "You can upload up to 4 valid reference images.",
+  "تعذر احتساب السعر.": "Could not calculate the price.",
+  "الدفع نقدًا عند المحل غير متاح لهذا الطلب.": "Cash at the store is not available for this order.",
+  "التحويل البنكي غير متاح حاليًا.": "Bank transfer is currently unavailable.",
+  "التحويل عبر وكالة غير متاح حاليًا.": "Cash transfer through an agency is currently unavailable.",
+  "اختر وكالة التحويل.": "Choose a transfer agency.",
+  "خيار التسبيق غير متاح حاليًا.": "The deposit option is currently unavailable.",
+  "خيار الدفع الكامل غير متاح حاليًا.": "Full payment is currently unavailable.",
+  "اختر طريقة إتمام الدفع.": "Choose a payment method."
+};
+
+
 function StepHeading({ number, children }: { number: number; children: ReactNode }) {
   return (
     <h2 className="formStepTitle">
@@ -75,7 +108,7 @@ export default function OrderClient() {
         setShop(s);
         setRules(r);
       })
-      .catch(() => setMessage("تعذر تحميل إعدادات الطلب الحالية."))
+      .catch(() => setMessage(tr("تعذر تحميل إعدادات الطلب الحالية.", "Could not load the current order settings.")))
       .finally(() => setLoadingData(false));
   }, []);
 
@@ -113,7 +146,7 @@ export default function OrderClient() {
       const url = await uploadGraduationImage(file);
       patchPrinting(key, { logoPath: url });
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "تعذر رفع الشعار.");
+      setMessage(error instanceof Error ? (isArabic ? error.message : ERROR_EN[error.message] ?? error.message) : tr("تعذر رفع الشعار.", "Could not upload the logo."));
     } finally {
       setUploading(false);
     }
@@ -127,7 +160,7 @@ export default function OrderClient() {
       const url = await uploadGraduationImage(file);
       setDraft((d) => ({ ...d, referenceImages: [...d.referenceImages, url].slice(0, 4) }));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "تعذر رفع الصورة.");
+      setMessage(error instanceof Error ? (isArabic ? error.message : ERROR_EN[error.message] ?? error.message) : tr("تعذر رفع الصورة.", "Could not upload the image."));
     } finally {
       setUploading(false);
     }
@@ -141,7 +174,7 @@ export default function OrderClient() {
       const result = await submitOrder({ draft, products, cities, shop, rules });
       setSuccess(result.orderNumber);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "تعذر إرسال الطلب.");
+      setMessage(error instanceof Error ? (isArabic ? error.message : ERROR_EN[error.message] ?? error.message) : tr("تعذر إرسال الطلب.", "Could not submit the order."));
     } finally {
       setSubmitting(false);
     }
