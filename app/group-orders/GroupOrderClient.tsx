@@ -77,7 +77,7 @@ export default function GroupOrderClient() {
     setSubmitting(true);
     setMessage("");
     try {
-      const number = await submitGroupOrder(draft);
+      const number = await submitGroupOrder({ ...draft, membersExcelUrl: excelFile?.url ?? null, membersExcelName: excelFile?.name ?? null });
       setSuccess(number);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "تعذر إرسال الطلب الجماعي.");
