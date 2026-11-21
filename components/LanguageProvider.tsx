@@ -12,14 +12,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
   const [locale, setLocaleState] = useState<Locale>("ar");
-  const [ready, setReady] = useState(false);
-
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
       if (saved === "ar" || saved === "en") queueMicrotask(() => setLocaleState(saved));
     } catch {}
-    setReady(true);
   }, []);
 
   const setLocale = useCallback((next: Locale) => {
@@ -30,12 +27,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const toggleLocale = useCallback(() => setLocale(locale === "ar" ? "en" : "ar"), [locale, setLocale]);
 
   useEffect(() => {
-    if (!ready) return;
     const activeLocale = isAdminRoute ? "ar" : locale;
     document.documentElement.lang = activeLocale;
     document.documentElement.dir = activeLocale === "ar" ? "rtl" : "ltr";
     document.documentElement.dataset.locale = activeLocale;
-  }, [locale, ready, isAdminRoute]);
+  }, [locale, isAdminRoute]);
 
   return <LanguageContext.Provider value={{ locale, isArabic: locale === "ar", setLocale, toggleLocale }}>{children}</LanguageContext.Provider>;
 }
