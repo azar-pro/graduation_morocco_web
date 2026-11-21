@@ -22,6 +22,8 @@ export type GroupOrderDraft = {
   deliveryDate: string;
   deliveryTime: string;
   members: string[];
+  membersExcelUrl?: string | null;
+  membersExcelName?: string | null;
   productType: "fullOutfit" | "shawlAndCap";
   rightShawl: GroupPrintingOption;
   leftShawl: GroupPrintingOption;
@@ -81,9 +83,15 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
   }
 
   const members = draft.members.map((x) => x.trim()).filter(Boolean);
+  const membersExcelUrl = draft.orderType === "شراء" ? draft.membersExcelUrl?.trim() || null : null;
+  const membersExcelName = draft.orderType === "شراء" ? draft.membersExcelName?.trim() || null : null;
   if (draft.orderType === "شراء") {
-    if (members.length !== quantity) {
-      throw new Error("في طلب الشراء يجب إدخال اسم لكل فرد في المجموعة.");
+    if (membersExcelUrl) {
+      if (!membersExcelUrl.startsWith("https://") || !membersExcelName) {
+        throw new Error("ملف Excel المرفق غير صالح. أعد رفع الملف.");
+      }
+    } else if (members.length !== quantity) {
+      throw new Error("أدخل اسمًا لكل فرد أو أرفق ملف Excel يحتوي على أسماء المجموعة.");
     }
     if (members.some((member) => member.length > 120)) {
       throw new Error("أحد أسماء الأفراد أطول من المسموح.");
@@ -138,7 +146,9 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
     address: draft.deliveryMethod === "pickup" ? "" : address,
     scheduledAt: Timestamp.fromDate(scheduled.toUTC().toJSDate()),
     returnAt: returnAt ? Timestamp.fromDate(returnAt.toUTC().toJSDate()) : null,
-    members: draft.orderType === "شراء" ? members : [],
+    members: draft.orderType === "شراء" && !membersExcelUrl ? members : [],
+    membersExcelUrl,
+    membersExcelName,
     productType: isPurchase ? draft.productType : "fullOutfit",
     rightShawl,
     leftShawl,
