@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import GroupOrderClient from "./GroupOrderClient";
+import SiteHeader from "@/components/SiteHeader";
 
 export const metadata: Metadata = {
   title: "طلبات بدلات التخرج الجماعية في المغرب",
@@ -10,7 +11,9 @@ export const metadata: Metadata = {
 
 export default function GroupOrdersPage() {
   return (
-    <main className="utilityPage orderPage">
+    <div className="orderRoute" dir="rtl">
+      <SiteHeader />
+      <main className="utilityPage orderPage">
       <section className="orderShell">
         <header className="orderIntro">
           <p className="eyebrow">للمجموعات والدفعات الجامعية</p>
@@ -21,6 +24,7 @@ export default function GroupOrdersPage() {
         </header>
         <GroupOrderClient />
       </section>
-    </main>
+      </main>
+    </div>
   );
 }
