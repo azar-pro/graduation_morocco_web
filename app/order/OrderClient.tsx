@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState, type ReactNode } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { DateTime } from "luxon";
 import {
   DEFAULT_CITIES,
@@ -87,7 +87,7 @@ const initialDraft: OrderDraft = {
 
 export default function OrderClient() {
   const { isArabic } = useLanguage();
-  const tr = (ar: string, en: string) => isArabic ? ar : en;
+  const tr = useCallback((ar: string, en: string) => isArabic ? ar : en, [isArabic]);
   const [draft, setDraft] = useState<OrderDraft>(initialDraft);
   const [products, setProducts] = useState<PublicProduct[]>([]);
   const [cities, setCities] = useState<DeliveryCity[]>(DEFAULT_CITIES);
@@ -110,7 +110,7 @@ export default function OrderClient() {
       })
       .catch(() => setMessage(tr("تعذر تحميل إعدادات الطلب الحالية.", "Could not load the current order settings.")))
       .finally(() => setLoadingData(false));
-  }, []);
+  }, [tr]);
 
   const quote = useMemo(() => {
     try {
