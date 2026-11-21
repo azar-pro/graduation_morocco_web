@@ -66,7 +66,7 @@ export default function TrackingClient() {
               <article className="trackingResult" key={order.orderNumber}>
                 <span className="trackingNumber">{order.orderNumber}</span>
                 <strong>{labels[order.status] ?? "حالة الطلب غير معروفة"}</strong>
-                <small>{order.orderNumber.startsWith("GRP-") ? "طلب جماعي" : "طلب فردي"} · {order.orderType} · {order.productType}</small>
+                <small>{order.orderNumber.startsWith("GRP-") ? `طلب جماعي · ${order.quantity ?? "—"} أفراد` : "طلب فردي"} · {order.orderType} · {order.productType}</small>
               </article>
             ))}
           </div>
