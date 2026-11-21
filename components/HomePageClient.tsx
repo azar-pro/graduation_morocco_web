@@ -136,10 +136,10 @@ function AppIcon({ name }: { name: IconName }) {
 }
 
 export default function HomePageClient() {
-  const [locale, setLocale] = useState<Locale>("ar");
+  const { locale, isArabic, toggleLocale } = useLanguage();
   const [menuOpen, setMenuOpen] = useState(false);
   const t = copy[locale];
-  const isArabic = locale === "ar";
+
 
   useEffect(() => {
     document.documentElement.lang = locale;
@@ -194,7 +194,7 @@ export default function HomePageClient() {
           <Link href="/order">{isArabic ? "طلب فردي" : "Individual order"}</Link>
           <Link href="/group-orders">{isArabic ? "طلب جماعي" : "Group order"}</Link>
           <Link className="appContactButton" href="/contact"><AppIcon name="chat" />{t.contactUs}</Link>
-          <button className="appLanguage" type="button" onClick={switchLocale} aria-label={isArabic ? "Switch to English" : "التبديل إلى العربية"}>{isArabic ? "EN" : "AR"}</button>
+          <button className="appLanguage" type="button" onClick={() => { toggleLocale(); setMenuOpen(false); }} aria-label={isArabic ? "Switch to English" : "التبديل إلى العربية"}>{isArabic ? "EN" : "AR"}</button>
         </nav>
 
         <div className="appMobileHeaderActions">
