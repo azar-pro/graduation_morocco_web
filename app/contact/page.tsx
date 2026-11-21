@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
+import SiteHeader from "@/components/SiteHeader";
 
 export const metadata: Metadata = {
   title: "تواصل معنا",
@@ -13,16 +13,7 @@ const whatsapp = "https://wa.me/212717208919";
 export default function ContactPage() {
   return (
     <div className="orderRoute" dir="rtl">
-      <header className="orderSiteHeader">
-        <Link className="orderBrand" href="/" aria-label="Graduation Morocco — الرئيسية">
-          <Image src="/logo.png" width={188} height={62} alt="Graduation Morocco" priority />
-        </Link>
-        <nav className="orderHeaderNav" aria-label="التنقل">
-          <Link href="/">الرئيسية</Link>
-          <Link href="/order">طلب فردي</Link>
-          <Link href="/group-orders">طلب جماعي</Link>
-        </nav>
-      </header>
+      <SiteHeader />
 
       <main className="utilityPage orderPage">
         <section className="orderShell">
