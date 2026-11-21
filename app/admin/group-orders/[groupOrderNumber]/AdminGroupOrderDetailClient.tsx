@@ -70,12 +70,16 @@ export default function AdminGroupOrderDetailClient(){
 
           <section className="adminDetailGrid">
             <article className="adminDetailCard">
-              <h2>الطلب</h2>
+              <h2>الطلب والتقدير المالي</h2>
               <dl>
                 <div><dt>النوع</dt><dd>{value(order.orderType)}</dd></div>
                 <div><dt>عدد الأفراد</dt><dd>{Number(order.quantity??0)}</dd></div>
                 <div><dt>نوع القماش</dt><dd>{value(order.fabric)}</dd></div>
                 <div><dt>لون الوشاح</dt><dd>{value(order.shawlColor)}</dd></div>
+                <div><dt>سعر الفرد التقديري</dt><dd>{order.unitPriceApplied == null ? "—" : `${Number(order.unitPriceApplied).toLocaleString("fr-MA")} درهم`}</dd></div>
+                <div><dt>مجموع المنتجات التقديري</dt><dd>{order.productTotalEstimate == null ? "—" : `${Number(order.productTotalEstimate).toLocaleString("fr-MA")} درهم`}</dd></div>
+                <div><dt>رسوم التوصيل التقديرية</dt><dd>{order.deliveryFeeApplied == null ? "—" : `${Number(order.deliveryFeeApplied).toLocaleString("fr-MA")} درهم`}</dd></div>
+                <div><dt>المجموع التقديري</dt><dd><strong>{order.totalPriceEstimate == null ? "يحدد بعد المراجعة" : `${Number(order.totalPriceEstimate).toLocaleString("fr-MA")} درهم`}</strong></dd></div>
                 <div><dt>الحالة</dt><dd>
                   <select value={String(order.status??"received")} disabled={saving}
                     onChange={async e=>{
