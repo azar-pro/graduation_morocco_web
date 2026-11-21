@@ -372,7 +372,7 @@ export default function OrderClient() {
             {draft.deliveryDate ? (
               <p>
                 {DateTime.fromISO(`${draft.deliveryDate}T${draft.deliveryTime}`, { zone: "Africa/Casablanca" })
-                  .plus({ hours: 24 }).toFormat("dd/MM/yyyy")} — الساعة{" "}
+                  .plus({ hours: 24 }).toFormat("dd/MM/yyyy")} — {tr("الساعة", "at")}{" "}
                 {DateTime.fromISO(`${draft.deliveryDate}T${draft.deliveryTime}`, { zone: "Africa/Casablanca" })
                   .plus({ hours: 24 }).toFormat("HH:mm")}
               </p>
@@ -402,13 +402,13 @@ export default function OrderClient() {
           {draft.paymentMethod !== "cash_at_store" && (
             <label>{tr("المبلغ", "Amount")}
               <select value={draft.bankTransferPlan} onChange={(e) => patch("bankTransferPlan", e.target.value as OrderDraft["bankTransferPlan"])}>
-                {shop.depositPaymentEnabled && <option value="deposit">تسبيق {shop.depositPercentage}%</option>}
+                {shop.depositPaymentEnabled && <option value="deposit">{tr("تسبيق", "Deposit")} {shop.depositPercentage}%</option>}
                 {shop.fullPaymentEnabled && <option value="full">{tr("الدفع الكامل", "Full payment")}</option>}
               </select>
             </label>
           )}
           {draft.paymentMethod === "cash_transfer_agency" && (
-            <label>الوكالة
+            <label>{tr("الوكالة", "Agency")}
               <select value={draft.paymentProvider} onChange={(e) => patch("paymentProvider", e.target.value as OrderDraft["paymentProvider"])} required>
                 <option value="">{tr("اختر الوكالة", "Choose an agency")}</option><option value="cash_plus">Cash Plus</option>
                 <option value="wafacash">Wafacash</option><option value="western_union">Western Union</option>
@@ -430,13 +430,13 @@ export default function OrderClient() {
       </section>
 
       <aside className="orderSummary">
-        <div><span>{tr("المنتج", "Product")}</span><strong>{quote?.productPrice ?? "—"} درهم</strong></div>
-        <div><span>{tr("التوصيل", "Delivery")}</span><strong>{quote?.deliveryFee ?? "—"} درهم</strong></div>
-        <div className="summaryTotal"><span>{tr("المجموع", "Total")}</span><strong>{quote?.total ?? "—"} درهم</strong></div>
+        <div><span>{tr("المنتج", "Product")}</span><strong>{quote?.productPrice ?? "—"} {tr("درهم", "MAD")}</strong></div>
+        <div><span>{tr("التوصيل", "Delivery")}</span><strong>{quote?.deliveryFee ?? "—"} {tr("درهم", "MAD")}</strong></div>
+        <div className="summaryTotal"><span>{tr("المجموع", "Total")}</span><strong>{quote?.total ?? "—"} {tr("درهم", "MAD")}</strong></div>
       </aside>
 
       <button className="submitOrder" type="submit" disabled={submitting || loadingData || uploading || !quote}>
-        {submitting ? "جاري إرسال الطلب…" : "تأكيد وإرسال الطلب"}
+        {submitting ? tr("جاري إرسال الطلب…", "Submitting order…") : tr("تأكيد وإرسال الطلب", "Confirm and submit order")}
       </button>
       <p className="privacyNote">{tr("لا تحتاج إلى حساب. تُستخدم بياناتك لمعالجة الطلب والتواصل معك فقط.", "No account is needed. Your details are used only to process your order and contact you.")}</p>
     </form>
