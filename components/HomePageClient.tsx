@@ -191,7 +191,9 @@ export default function HomePageClient() {
           <Link href="/">{t.home}</Link>
           <Link href="#services">{t.services}</Link>
           <Link href="#about">{t.aboutUs}</Link>
-          <Link className="appContactButton" href="#contact"><AppIcon name="chat" />{t.contactUs}</Link>
+          <Link href="/order">{isArabic ? "طلب فردي" : "Individual order"}</Link>
+          <Link href="/group-orders">{isArabic ? "طلب جماعي" : "Group order"}</Link>
+          <Link className="appContactButton" href="/contact"><AppIcon name="chat" />{t.contactUs}</Link>
           <button className="appLanguage" type="button" onClick={switchLocale} aria-label={isArabic ? "Switch to English" : "التبديل إلى العربية"}>{isArabic ? "EN" : "AR"}</button>
         </nav>
 
@@ -211,8 +213,9 @@ export default function HomePageClient() {
             <h1>{t.heroTitle}</h1>
             <p className="appHeroSubtitle">{t.heroSubtitle}</p>
             <div className="appHeroActions">
-              <Link className="appPrimaryButton" href="/order">{t.startOrderNow}</Link>
-              <Link className="appOutlineLight" href="#contact">{t.contactUs}</Link>
+              <Link className="appPrimaryButton" href="/order">{isArabic ? "الطلب الفردي" : "Individual order"}</Link>
+              <Link className="appOutlineLight" href="/group-orders">{isArabic ? "الطلب الجماعي (5–100 أفراد)" : "Group order (5–100)"}</Link>
+              <Link className="appOutlineLight" href="/contact">{t.contactUs}</Link>
             </div>
             <div className="appHeroBenefits">
               <span>{t.quality} ◈</span>
@@ -297,7 +300,8 @@ export default function HomePageClient() {
             <nav>
               <Link href="/order">{t.startOrderNow}</Link>
               <Link href="/track-order">{t.tracking}</Link>
-              <Link href="#contact">{t.contactUs}</Link>
+              <Link href="/group-orders">{isArabic ? "الطلبات الجماعية" : "Group orders"}</Link>
+              <Link href="/contact">{t.contactUs}</Link>
             </nav>
           </div>
         </div>
@@ -312,7 +316,7 @@ export default function HomePageClient() {
         <Link href="/"><AppIcon name="home" />{t.home}</Link>
         <Link href="/order"><AppIcon name="school" />{t.newOrder}</Link>
         <Link href="/track-order"><AppIcon name="truck" />{t.tracking}</Link>
-        <Link href="#contact"><AppIcon name="support" />{t.contact}</Link>
+        <Link href="/contact"><AppIcon name="support" />{t.contact}</Link>
       </nav>
 
       {menuOpen && (
@@ -323,9 +327,11 @@ export default function HomePageClient() {
               <Link href="/" onClick={() => setMenuOpen(false)}>{t.home}<span>‹</span></Link>
               <Link href="#about" onClick={() => setMenuOpen(false)}>{t.aboutUs}<span>‹</span></Link>
               <Link href="#services" onClick={() => setMenuOpen(false)}>{t.services}<span>‹</span></Link>
-              <Link href="#contact" onClick={() => setMenuOpen(false)}>{t.contactUs}<span>‹</span></Link>
+              <Link href="/group-orders" onClick={() => setMenuOpen(false)}>{isArabic ? "الطلب الجماعي" : "Group order"}<span>‹</span></Link>
+              <Link href="/contact" onClick={() => setMenuOpen(false)}>{t.contactUs}<span>‹</span></Link>
             </nav>
-            <Link className="appMobileOrder" href="/order">{t.startOrderNow}</Link>
+            <Link className="appMobileOrder" href="/order">{isArabic ? "الطلب الفردي" : "Individual order"}</Link>
+            <Link className="appMobileOrder" href="/group-orders">{isArabic ? "الطلب الجماعي" : "Group order"}</Link>
           </div>
         </div>
       )}
