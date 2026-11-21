@@ -8,7 +8,6 @@ export const metadata: Metadata = {
   alternates: { canonical: "/contact" },
 };
 
-const phone = "+212717208919";
 const whatsapp = "https://wa.me/212717208919";
 
 export default function ContactPage() {
@@ -39,7 +38,6 @@ export default function ContactPage() {
               <h2>WhatsApp</h2>
               <p>راسلنا مباشرة وسنساعدك في استفسارك أو في تجهيز طلبك.</p>
               <a className="submitOrder contactPageAction" href={whatsapp} target="_blank" rel="noopener noreferrer">ابدأ محادثة على WhatsApp</a>
-              <a className="contactPagePhone" href={`tel:${phone}`} dir="ltr">{phone}</a>
             </article>
             <article className="contactPageCard contactPageInfo">
               <span className="contactPageIcon" aria-hidden="true">✦</span>
