@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 
 export type Locale = "ar" | "en";
 type LanguageContextValue = { locale: Locale; isArabic: boolean; setLocale: (locale: Locale) => void; toggleLocale: () => void };
@@ -8,6 +9,8 @@ const LanguageContext = createContext<LanguageContextValue | null>(null);
 const STORAGE_KEY = "graduation-morocco-locale";
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
   const [locale, setLocaleState] = useState<Locale>("ar");
   const [ready, setReady] = useState(false);
 
@@ -28,10 +31,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!ready) return;
-    document.documentElement.lang = locale;
-    document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
-    document.documentElement.dataset.locale = locale;
-  }, [locale, ready]);
+    const activeLocale = isAdminRoute ? "ar" : locale;
+    document.documentElement.lang = activeLocale;
+    document.documentElement.dir = activeLocale === "ar" ? "rtl" : "ltr";
+    document.documentElement.dataset.locale = activeLocale;
+  }, [locale, ready, isAdminRoute]);
 
   return <LanguageContext.Provider value={{ locale, isArabic: locale === "ar", setLocale, toggleLocale }}>{children}</LanguageContext.Provider>;
 }
