@@ -13,6 +13,7 @@ export type TrackingResult = {
   status: string;
   orderType: string;
   productType: string;
+  quantity?: number;
   createdAt?: Date;
 };
 
@@ -46,6 +47,7 @@ async function readTracking(orderNumber: string): Promise<TrackingResult | null>
     status: String(d.status ?? "received"),
     orderType: String(d.orderType ?? ""),
     productType: String(d.productType ?? ""),
+    quantity: typeof d.quantity === "number" ? d.quantity : undefined,
     createdAt,
   };
 }
