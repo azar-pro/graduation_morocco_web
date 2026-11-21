@@ -1,5 +1,6 @@
 import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type Faq = { q: string; a: string };
 
@@ -36,16 +37,16 @@ export default function SeoLanding({
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
-      <div className="orderRoute" dir="rtl">
+      <div className="orderRoute">
         <SiteHeader />
         <main className="seoPage">
         <section className="seoHero">
-          <p className="eyebrow">{eyebrow}</p>
-          <h1>{title}</h1>
-          <p>{intro}</p>
+          <p className="eyebrow">{isArabic ? eyebrow : e.eyebrow}</p>
+          <h1>{isArabic ? title : e.title}</h1>
+          <p>{isArabic ? intro : e.intro}</p>
           <div className="actions">
-            <Link className="primaryButton" href="/order">ابدأ الطلب</Link>
-            <Link className="secondaryButton" href="/group-orders">طلب جماعي</Link>
+            <Link className="primaryButton" href="/order">{isArabic ? "ابدأ الطلب" : "Start an order"}</Link>
+            <Link className="secondaryButton" href="/group-orders">{isArabic ? "طلب جماعي" : "Group order"}</Link>
           </div>
         </section>
 
@@ -53,14 +54,14 @@ export default function SeoLanding({
           {bullets.map((item) => (
             <article className="seoFeature" key={item}>
               <span>✓</span>
-              <p>{item}</p>
+              <p>{isArabic ? item : e.bullets[bullets.indexOf(item)] ?? item}</p>
             </article>
           ))}
         </section>
 
         <section className="seoFaq">
-          <p className="eyebrow">أسئلة شائعة</p>
-          <h2>معلومات مهمة قبل الطلب</h2>
+          <p className="eyebrow">{isArabic ? "أسئلة شائعة" : e.faqEyebrow}</p>
+          <h2>{isArabic ? "معلومات مهمة قبل الطلب" : e.faqTitle}</h2>
           <div className="faqList">
             {faq.map((item) => (
               <details key={item.q}>
@@ -72,9 +73,9 @@ export default function SeoLanding({
         </section>
 
         <section className="seoCta">
-          <h2>جاهز لتجهيز طلب التخرج؟</h2>
-          <p>يمكنك إرسال الطلب مباشرة بدون إنشاء حساب.</p>
-          <Link className="primaryButton" href="/order">ابدأ الآن</Link>
+          <h2>{isArabic ? "جاهز لتجهيز طلب التخرج؟" : e.ctaTitle}</h2>
+          <p>{isArabic ? "يمكنك إرسال الطلب مباشرة بدون إنشاء حساب." : e.ctaText}</p>
+          <Link className="primaryButton" href="/order">{isArabic ? "ابدأ الآن" : "Start now"}</Link>
         </section>
         </main>
       </div>
