@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
+import ContactPageClient from "./ContactPageClient";
 
 export const metadata: Metadata = {
   title: "تواصل معنا",
@@ -10,51 +11,4 @@ export const metadata: Metadata = {
 
 const whatsapp = "https://wa.me/212717208919";
 
-export default function ContactPage() {
-  return (
-    <div className="orderRoute" dir="rtl">
-      <SiteHeader />
-
-      <main className="utilityPage orderPage">
-        <section className="orderShell">
-          <header className="orderIntro">
-            <p className="eyebrow">نحن هنا لمساعدتك</p>
-            <h1>تواصل معنا</h1>
-            <p>للاستفسار عن المنتجات، التخصيص، التوصيل أو تنسيق طلبات التخرج الجماعية، يسعدنا التواصل معك.</p>
-          </header>
-
-          <div className="contactPageGrid">
-            <article className="contactPageCard">
-              <span className="contactPageIcon" aria-hidden="true">◉</span>
-              <h2>WhatsApp</h2>
-              <p>راسلنا مباشرة وسنساعدك في استفسارك أو في تجهيز طلبك.</p>
-              <a className="submitOrder contactPageAction" href={whatsapp} target="_blank" rel="noopener noreferrer">ابدأ محادثة على WhatsApp</a>
-            </article>
-            <article className="contactPageCard contactPageInfo">
-              <span className="contactPageIcon" aria-hidden="true">✦</span>
-              <h2>كيف يمكننا مساعدتك؟</h2>
-              <ul>
-                <li>الاستفسار عن بدلات وأوشحة التخرج.</li>
-                <li>اختيار الشراء أو الكراء.</li>
-                <li>تنسيق طلب جماعي من 5 إلى 100 شخص.</li>
-                <li>متابعة طلب تم إرساله مسبقًا.</li>
-              </ul>
-              <div className="contactPageLinks">
-                <Link href="/order">إنشاء طلب فردي</Link>
-                <Link href="/group-orders">إنشاء طلب جماعي</Link>
-                <Link href="/track-order">تتبع الطلب</Link>
-              </div>
-            </article>
-          </div>
-        </section>
-      </main>
-
-      <footer className="orderSiteFooter">
-        <div className="orderFooterBottom">
-          <p>© 2026 Graduation Morocco. جميع الحقوق محفوظة.</p>
-          <p className="orderFooterCredit">تصميم وتطوير <span>MAQTA Studio</span></p>
-        </div>
-      </footer>
-    </div>
-  );
-}
+export default function ContactPage() { return <ContactPageClient />; }
