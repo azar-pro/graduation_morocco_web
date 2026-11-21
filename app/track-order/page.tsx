@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import TrackingClient from "./TrackingClient";
+import SiteHeader from "@/components/SiteHeader";
 
 export const metadata: Metadata = {
   title: "تتبع الطلب",
@@ -9,7 +10,9 @@ export const metadata: Metadata = {
 
 export default function TrackOrderPage() {
   return (
-    <main className="utilityPage">
+    <div className="orderRoute" dir="rtl">
+      <SiteHeader />
+      <main className="utilityPage">
       <section className="utilityCard">
         <p className="eyebrow">تتبع الطلب</p>
         <h1>اعرف حالة طلبك</h1>
@@ -18,6 +21,7 @@ export default function TrackOrderPage() {
         </p>
         <TrackingClient />
       </section>
-    </main>
+      </main>
+    </div>
   );
 }
