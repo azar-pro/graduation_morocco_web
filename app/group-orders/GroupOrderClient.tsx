@@ -90,7 +90,7 @@ export default function GroupOrderClient() {
         <span className="eyebrow">طلبات المجموعات الكبيرة</span>
         <h2>للطلبات التي تتجاوز 100 شخص</h2>
         <p>حتى ننسق احتياجات مجموعتكم بدقة، تواصل معنا مباشرة عبر WhatsApp وسنتابع معك تفاصيل الكمية والتصميم.</p>
-        <a className="submitOrder" href={`https://wa.me/212717208919?text=${encodeURIComponent(`السلام عليكم، أود طلب أكثر من 100 بدلة تخرج. العدد المطلوب: ${draft.quantity}`) }`} target="_blank" rel="noopener noreferrer">تواصل معنا عبر WhatsApp</a>
+        <a className="submitOrder" href={`https://wa.me/212717208919?text=${encodeURIComponent(`السلام عليكم، أود تنسيق طلب جماعي يتجاوز 100 شخص. العدد المطلوب: ${draft.quantity}`) }`} target="_blank" rel="noopener noreferrer">تواصل معنا عبر WhatsApp</a>
         <button type="button" className="choice" onClick={() => changeQuantity(100)}>العودة إلى 100 شخص أو أقل</button>
       </div>
     );
@@ -118,6 +118,7 @@ export default function GroupOrderClient() {
             <button
               type="button"
               key={type}
+              disabled={uploading}
               className={draft.orderType === type ? "choice active" : "choice"}
               onClick={() => setDraft((d) => ({
                 ...d,
@@ -296,7 +297,7 @@ export default function GroupOrderClient() {
               <div className="referenceList">
                 {draft.referenceImages.map((url, index) => (
                   <div className="groupReferenceItem" key={url}>
-                    <a href={url} target="_blank" rel="noopener noreferrer">عرض الصورة {index + 1}</a>
+                    <a href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`الصورة المرجعية ${index + 1}`} />عرض الصورة {index + 1}</a>
                     <button type="button" onClick={() => setDraft((d) => ({ ...d, referenceImages: d.referenceImages.filter((_, i) => i !== index) }))}>حذف ×</button>
                   </div>
                 ))}
