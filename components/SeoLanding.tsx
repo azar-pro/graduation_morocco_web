@@ -22,13 +22,13 @@ export default function SeoLanding({ eyebrow, title, intro, bullets, faq, schema
     eyebrow: "Graduation gowns", title: "Graduation gowns in Morocco for purchase and customization",
     intro: "Choose your graduation gown, fabric, and colour, add printing or a logo, and submit your order without creating an account.",
     bullets: ["Satin and velvet options, depending on product availability.", "Customize the shawl and cap with text or a logo.", "Delivery to several Moroccan cities or pickup, depending on available settings.", "Track your order later using your order number or phone number."],
-    faq: [{ q: "Do I need to create an account?", a: "No. You can submit and track an order without an account." }, { q: "Can I print a name on the shawl?", a: "Yes. Purchase orders can include text, a logo, or both, depending on the selected print position." }, { q: "Which fabrics are available?", a: "Availability depends on the selected product. The main options are satin and velvet." }],
+    faq: [{ q: "Do I need to create an account?", a: "No. You can submit and track an order without an account." }, { q: "Can I print a name on the shawl?", a: "Yes. Purchase orders can include text, a logo, or both, depending on the selected print position." }, { q: "Which fabrics are available?", a: "Availability depends on the selected product. The main options are satin and plush fabric." }],
     faqEyebrow: "Frequently asked questions", faqTitle: "Important information before ordering",
     ctaTitle: "Ready to prepare your graduation order?", ctaText: "Submit your order directly without creating an account."
   } : {
     eyebrow: "Graduation gown rental", title: "Rent a graduation gown in Morocco with ease",
     intro: "Reserve a graduation gown for rental, choose the product, fabric, city, and collection time, with scheduling based on current order rules.",
-    bullets: ["Book without creating an account.", "Choose satin or velvet, depending on product availability.", "Clear collection and return times.", "Track your order after submitting it."],
+    bullets: ["Book without creating an account.", "Choose satin or plush fabric, depending on product availability.", "Clear collection and return times.", "Track your order after submitting it."],
     faq: [{ q: "How long is the rental period?", a: "The current rental period is 24 hours from collection for individual and group orders." }, { q: "Is printing available with rentals?", a: "No. Printing and customization are currently available for purchase orders only." }, { q: "Can I rent gowns for a group?", a: "Yes. There is a separate group-order flow for 5 to 100 people." }],
     faqEyebrow: "Frequently asked questions", faqTitle: "Important information before ordering",
     ctaTitle: "Ready to prepare your graduation order?", ctaText: "Submit your order directly without creating an account."
