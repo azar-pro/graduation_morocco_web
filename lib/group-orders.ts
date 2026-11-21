@@ -25,6 +25,8 @@ export type GroupOrderDraft = {
   membersExcelUrl?: string | null;
   membersExcelName?: string | null;
   productType: "fullOutfit" | "shawlAndCap";
+  fabric: "ساتان" | "موبرة";
+  shawlColor: string;
   rightShawl: GroupPrintingOption;
   leftShawl: GroupPrintingOption;
   backShawl: GroupPrintingOption;
@@ -68,6 +70,9 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
     throw new Error("أدخل رقم هاتف مغربي صحيح.");
   }
   if (!draft.city.trim()) throw new Error("اختر المدينة.");
+  if (draft.fabric !== "ساتان" && draft.fabric !== "موبرة") throw new Error("اختر نوع القماش.");
+  const shawlColor = draft.shawlColor.trim();
+  if (!shawlColor || shawlColor.length > 80) throw new Error("أدخل لون الوشاح بشكل صحيح.");
   if (draft.deliveryMethod === "homeDelivery" && address.length < 3) {
     throw new Error("أدخل عنوان التوصيل.");
   }
@@ -150,6 +155,8 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
     membersExcelUrl,
     membersExcelName,
     productType: isPurchase ? draft.productType : "fullOutfit",
+    fabric: draft.fabric,
+    shawlColor,
     rightShawl,
     leftShawl,
     backShawl,
