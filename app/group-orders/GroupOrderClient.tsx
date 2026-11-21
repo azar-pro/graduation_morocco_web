@@ -7,6 +7,7 @@ import { uploadGraduationImage } from "@/lib/image-upload";
 import { uploadGroupExcel } from "@/lib/group-file-upload";
 import { DEFAULT_CITIES, DEFAULT_RULES, DEFAULT_SHOP, loadDeliveryCities, loadOrderRules, loadProducts, loadShopSettings } from "@/lib/public-data";
 import type { DeliveryCity, OrderRules, PublicProduct, ShopSettings } from "@/lib/order-types";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const TIMES = Array.from({ length: 13 }, (_, i) => `${String(i + 9).padStart(2, "0")}:00`);
 
@@ -33,6 +34,8 @@ const initial: GroupOrderDraft = {
 };
 
 export default function GroupOrderClient() {
+  const { isArabic } = useLanguage();
+  const tr = (ar: string, en: string) => isArabic ? ar : en;
   const [draft, setDraft] = useState<GroupOrderDraft>(initial);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
@@ -130,11 +133,11 @@ export default function GroupOrderClient() {
   if (draft.quantity > 100) {
     return (
       <div className="groupOverLimit" role="status">
-        <span className="eyebrow">طلبات المجموعات الكبيرة</span>
-        <h2>للطلبات التي تتجاوز 100 شخص</h2>
-        <p>حتى ننسق احتياجات مجموعتكم بدقة، تواصل معنا مباشرة عبر WhatsApp وسنتابع معك تفاصيل الكمية والتصميم.</p>
-        <a className="submitOrder" href={`https://wa.me/212717208919?text=${encodeURIComponent(`السلام عليكم، أود تنسيق طلب جماعي يتجاوز 100 شخص. العدد المطلوب: ${draft.quantity}`) }`} target="_blank" rel="noopener noreferrer">تواصل معنا عبر WhatsApp</a>
-        <button type="button" className="choice" onClick={() => changeQuantity(100)}>العودة إلى 100 شخص أو أقل</button>
+        <span className="eyebrow">{tr("طلبات المجموعات الكبيرة", "Large group orders")}</span>
+        <h2>{tr("للطلبات التي تتجاوز 100 شخص", "For orders above 100 people")}</h2>
+        <p>{tr("حتى ننسق احتياجات مجموعتكم بدقة، تواصل معنا مباشرة عبر WhatsApp وسنتابع معك تفاصيل الكمية والتصميم.", "To coordinate your group’s needs accurately, contact us on WhatsApp to discuss the quantity and design.")}</p>
+        <a className="submitOrder" href={`https://wa.me/212717208919?text=${encodeURIComponent(`السلام عليكم، أود تنسيق طلب جماعي يتجاوز 100 شخص. العدد المطلوب: ${draft.quantity}`) }`} target="_blank" rel="noopener noreferrer">{tr("تواصل معنا عبر WhatsApp", "Contact us on WhatsApp")}</a>
+        <button type="button" className="choice" onClick={() => changeQuantity(100)}>{tr("العودة إلى 100 شخص أو أقل", "Return to 100 people or fewer")}</button>
       </div>
     );
   }
@@ -143,10 +146,10 @@ export default function GroupOrderClient() {
     return (
       <div className="orderSuccess">
         <span className="successMark">✓</span>
-        <h2>تم استلام الطلب الجماعي</h2>
-        <p>احتفظ برقم الطلب لتتبعه لاحقًا، ويمكنك مشاركته مع أفراد المجموعة.</p>
+        <h2>{tr("تم استلام الطلب الجماعي", "Your group order has been received")}</h2>
+        <p>{tr("احتفظ برقم الطلب لتتبعه لاحقًا، ويمكنك مشاركته مع أفراد المجموعة.", "Keep your order number to track it later and share it with your group.")}</p>
         <strong dir="ltr">{success}</strong>
-        <a className="primaryButton" href="/track-order">تتبع الطلب الجماعي</a>
+        <a className="primaryButton" href="/track-order">{tr("تتبع الطلب الجماعي", "Track group order")}</a>
       </div>
     );
   }
@@ -155,11 +158,11 @@ export default function GroupOrderClient() {
     <form className="orderForm" onSubmit={submit}>
       {message && <p className="formError">{message}</p>}
       {(shop.maintenanceMode || !shop.acceptingOrders || (draft.orderType === "شراء" && !shop.purchaseEnabled) || (draft.orderType === "كراء" && !shop.rentalEnabled)) && (
-        <p className="formNotice" role="status">استقبال هذا النوع من الطلبات متوقف مؤقتًا. يرجى التواصل معنا لمعرفة موعد إعادة فتح الطلبات.</p>
+        <p className="formNotice" role="status">{tr("استقبال هذا النوع من الطلبات متوقف مؤقتًا. يرجى التواصل معنا لمعرفة موعد إعادة فتح الطلبات.", "This type of order is temporarily unavailable. Contact us to ask when orders will reopen.")}</p>
       )}
 
       <section className="formSection">
-        <h2>1. نوع الطلب الجماعي</h2>
+        <h2>{tr("1. نوع الطلب الجماعي", "1. Group order type")}</h2>
         <div className="choiceGrid">
           {(["شراء","كراء"] as const).map((type) => (
             <button
@@ -188,10 +191,10 @@ export default function GroupOrderClient() {
       </section>
 
       <section className="formSection">
-        <h2>2. المجموعة</h2>
+        <h2>{tr("2. المجموعة", "2. Group details")}</h2>
         <div className="fieldGrid">
           <label>
-            عدد الأفراد
+            {tr("عدد الأفراد", "Number of people")}
             <input
               type="number"
               min={5}
@@ -201,7 +204,7 @@ export default function GroupOrderClient() {
             />
           </label>
           <label>
-            اسم المسؤول
+            {tr("اسم المسؤول", "Group coordinator’s name")}
             <input
               value={draft.responsibleName}
               onChange={(e) => setDraft((d) => ({ ...d, responsibleName: e.target.value }))}
@@ -210,7 +213,7 @@ export default function GroupOrderClient() {
             />
           </label>
           <label>
-            رقم الهاتف
+            {tr("رقم الهاتف", "Phone number")}
             <input
               value={draft.phoneNumber}
               onChange={(e) => setDraft((d) => ({ ...d, phoneNumber: e.target.value }))}
@@ -226,26 +229,26 @@ export default function GroupOrderClient() {
 
       {draft.orderType === "شراء" && (
         <section className="formSection">
-          <h2>3. المنتج</h2>
-          <p className="sectionHint">اختر ما سيتم توفيره لجميع أفراد المجموعة.</p>
+          <h2>{tr("3. المنتج", "3. Product")}</h2>
+          <p className="sectionHint">{tr("اختر ما سيتم توفيره لجميع أفراد المجموعة.", "Choose what will be supplied to every group member.")}</p>
           <div className="choiceGrid">
             <button type="button" className={draft.productType === "fullOutfit" ? "choice active" : "choice"}
-              onClick={() => setDraft((d) => ({ ...d, productType: "fullOutfit" }))}>بدلة تخرج كاملة</button>
+              onClick={() => setDraft((d) => ({ ...d, productType: "fullOutfit" }))}>{tr("بدلة تخرج كاملة", "Full graduation outfit")}</button>
             <button type="button" className={draft.productType === "shawlAndCap" ? "choice active" : "choice"}
-              onClick={() => setDraft((d) => ({ ...d, productType: "shawlAndCap" }))}>وشاح وقبعة فقط دون البدلة</button>
+              onClick={() => setDraft((d) => ({ ...d, productType: "shawlAndCap" }))}>{tr("وشاح وقبعة فقط دون البدلة", "Shawl and cap only")}</button>
           </div>
         </section>
       )}
 
       <section className="formSection">
-        <h2>مواصفات الثوب</h2>
-        <p className="sectionHint">اختر نوع القماش ولون الوشاح الموحد لجميع أفراد المجموعة.</p>
+        <h2>{tr("مواصفات الثوب", "Outfit specifications")}</h2>
+        <p className="sectionHint">{tr("اختر {tr("نوع القماش", "Fabric")} و{tr("لون الوشاح", "Shawl colour")} الموحد لجميع أفراد المجموعة.", "Choose the fabric and the shawl colour to be used for the whole group.")}</p>
         <div className="fieldGrid">
           <label>
             نوع القماش
             <select value={draft.fabric} onChange={(e) => setDraft((d) => ({ ...d, fabric: e.target.value as GroupOrderDraft["fabric"] }))}>
-              <option value="ساتان">ساتان</option>
-              <option value="موبرة">موبرة</option>
+              <option value="ساتان">{tr("ساتان", "Satin")}</option>
+              <option value="موبرة">{tr("موبرة", "Velvet")}</option>
             </select>
           </label>
           <label>
@@ -257,15 +260,15 @@ export default function GroupOrderClient() {
 
       {draft.orderType === "شراء" && (
         <section className="formSection">
-          <h2>4. أسماء أفراد المجموعة</h2>
-          <p className="sectionHint">يمكنك كتابة الأسماء يدويًا أو إرفاق ملف Excel يحتوي على اسم كل فرد في سطر مستقل. اختر طريقة واحدة فقط.</p>
+          <h2>{tr("4. أسماء أفراد المجموعة", "4. Group members’ names")}</h2>
+          <p className="sectionHint">{tr("يمكنك كتابة الأسماء يدويًا أو إرفاق ملف Excel يحتوي على اسم كل فرد في سطر مستقل. اختر طريقة واحدة فقط.", "Enter the names manually or attach an Excel file with one member per row. Choose one method only.")}</p>
           <div className="referenceBox">
-            <h3>إرفاق ملف Excel (اختياري)</h3>
-            <p>الصيغ المقبولة: .xlsx أو .xls أو .csv — بحد أقصى 10 MB. يجب أن يحتوي الملف على أسماء جميع أفراد المجموعة.</p>
+            <h3>{tr("إرفاق ملف Excel (اختياري)", "Attach an Excel file (optional)")}</h3>
+            <p>{tr("الصيغ المقبولة: .xlsx أو .xls أو .csv — بحد أقصى 10 MB. يجب أن يحتوي الملف على أسماء جميع أفراد المجموعة.", "Accepted formats: .xlsx, .xls or .csv — maximum 10 MB. The file must include every group member’s name.")}</p>
             {excelFile ? (
               <div className="groupExcelAttached">
-                <span>✓ تم إرفاق الملف: <strong>{excelFile.name}</strong><small>خانات الأسماء اليدوية مخفية مؤقتًا</small></span>
-                <button type="button" className="choice" onClick={() => setExcelFile(null)}>حذف الملف والعودة إلى كتابة الأسماء</button>
+                <span>✓ تم إرفاق الملف: <strong>{excelFile.name}</strong><small>{tr("خانات الأسماء اليدوية مخفية مؤقتًا", "Manual name fields are hidden while the file is attached.")}</small></span>
+                <button type="button" className="choice" onClick={() => setExcelFile(null)}>{tr("حذف الملف والعودة إلى كتابة الأسماء", "Remove file and enter names manually")}</button>
               </div>
             ) : (
               <label className={uploading ? "customUpload isDisabled" : "customUpload referenceUpload"}>
@@ -295,11 +298,11 @@ export default function GroupOrderClient() {
           </div>
           {!excelFile && (
             <>
-              <p className="sectionHint">أو اكتب أسماء الأفراد هنا، ويجب أن يطابق عددها عدد أفراد الطلب.</p>
+              <p className="sectionHint">{tr("أو اكتب أسماء الأفراد هنا، ويجب أن يطابق عددها عدد أفراد الطلب.", "Or enter the names below. The number of names must match the order quantity.")}</p>
               <div className="membersGrid">
                 {draft.members.map((member, index) => (
                   <label key={index}>
-                    الفرد {index + 1}
+                    {tr("الفرد", "Member")} {index + 1}
                     <input value={member}
                       onChange={(e) => setDraft((d) => {
                         const members = [...d.members];
@@ -317,8 +320,8 @@ export default function GroupOrderClient() {
 
       {draft.orderType === "شراء" && (
         <section className="formSection">
-          <h2>5. تخصيص الطباعة للمجموعة</h2>
-          <p className="sectionHint">خصص نموذجًا واحدًا فقط هنا؛ سيتم اعتماد التصميم والاختيارات نفسها وتعميمها على جميع أفراد المجموعة. هذه الخيارات متاحة للشراء فقط.</p>
+          <h2>{tr("5. تخصيص الطباعة للمجموعة", "5. Group printing customization")}</h2>
+          <p className="sectionHint">{tr("خصص نموذجًا واحدًا فقط هنا؛ سيتم اعتماد التصميم والاختيارات نفسها وتعميمها على جميع أفراد المجموعة. هذه الخيارات متاحة للشراء فقط.", "Set up one sample design here. The same design and choices will be applied to every member. Printing is available for purchases only.")}</p>
           <div className="printingGrid">
             {([
               ["rightShawl", "الجانب الأيمن من الوشاح"],
@@ -350,19 +353,19 @@ export default function GroupOrderClient() {
                   </div>
                   {option.enabled && expandedPrinting === key && (
                     <div className="printingDetails">
-                      <label>نوع الطباعة
+                      <label>{tr("نوع الطباعة", "Printing type")}
                         <select value={option.type} onChange={(e) => patchPrinting(key, { type: e.target.value as GroupPrintingOption["type"] })}>
-                          <option value="text">نص</option><option value="logo">شعار</option><option value="both">نص + شعار</option>
+                          <option value="text">{tr("نص", "Text")}</option><option value="logo">{tr("شعار", "Logo")}</option><option value="both">{tr("نص + شعار", "Text + logo")}</option>
                         </select>
                       </label>
                       {(option.type === "text" || option.type === "both") && (
-                        <label>النص المطلوب
+                        <label>{tr("النص المطلوب", "Text to print")}
                           <input maxLength={500} value={option.text} onChange={(e) => patchPrinting(key, { text: e.target.value })} />
                         </label>
                       )}
                       {(option.type === "logo" || option.type === "both") && (
                         <div className="uploadField">
-                          <span className="uploadLabel">رفع الشعار</span>
+                          <span className="uploadLabel">{tr("رفع الشعار", "Upload logo")}</span>
                           <label className={uploading ? "customUpload isDisabled" : "customUpload"}>
                             <input type="file" accept="image/*" disabled={uploading}
                               onChange={(e) => { void (async () => {
@@ -375,7 +378,7 @@ export default function GroupOrderClient() {
                               })(); }} />
                             <span className="uploadIcon">↑</span><span>{option.logoPath ? "استبدال الشعار" : "اختر صورة الشعار"}</span>
                           </label>
-                          {option.logoPath && <span className="uploadDone">تم رفع الشعار ✓</span>}
+                          {option.logoPath && <span className="uploadDone">{tr("تم رفع الشعار ✓", "Logo uploaded ✓")}</span>}
                         </div>
                       )}
                     </div>
@@ -385,8 +388,8 @@ export default function GroupOrderClient() {
             })}
           </div>
           <div className="referenceBox">
-            <h3>صور مرجعية للتصميم</h3>
-            <p>ارفع حتى 8 صور توضح الشكل المطلوب، وستكون مرجعًا موحدًا لتنفيذ المجموعة.</p>
+            <h3>{tr("صور مرجعية للتصميم", "Design reference images")}</h3>
+            <p>{tr("ارفع حتى 8 صور توضح الشكل المطلوب، وستكون مرجعًا موحدًا لتنفيذ المجموعة.", "Upload up to 8 images showing the requested design. They will be used as a shared reference for the group.")}</p>
             <label className={(uploading || draft.referenceImages.length >= 8) ? "customUpload referenceUpload isDisabled" : "customUpload referenceUpload"}>
               <input type="file" accept="image/*" disabled={uploading || draft.referenceImages.length >= 8}
                 onChange={(e) => { void addReference(e.target.files?.[0]); e.currentTarget.value = ""; }} />
@@ -398,8 +401,8 @@ export default function GroupOrderClient() {
               <div className="referenceList">
                 {draft.referenceImages.map((url, index) => (
                   <div className="groupReferenceItem" key={url}>
-                    <a href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`الصورة المرجعية ${index + 1}`} />عرض الصورة {index + 1}</a>
-                    <button type="button" onClick={() => setDraft((d) => ({ ...d, referenceImages: d.referenceImages.filter((_, i) => i !== index) }))}>حذف ×</button>
+                    <a href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`${tr("الصورة المرجعية", "Reference image")} ${index + 1}`} />{tr("عرض الصورة", "View image")} {index + 1}</a>
+                    <button type="button" onClick={() => setDraft((d) => ({ ...d, referenceImages: d.referenceImages.filter((_, i) => i !== index) }))}>{tr("حذف ×", "Remove ×")}</button>
                   </div>
                 ))}
               </div>
@@ -475,16 +478,16 @@ export default function GroupOrderClient() {
 
         {draft.orderType === "كراء" && (
           <div className="formNotice" role="status">
-            <strong>موعد إرجاع الكراء</strong>
+            <strong>{tr("موعد إرجاع الكراء", "Rental return time")}</strong>
             {draft.deliveryDate ? (
-              <p dir="rtl">
+              <p>
                 {DateTime.fromISO(`${draft.deliveryDate}T${draft.deliveryTime}`, { zone: "Africa/Casablanca" })
                   .plus({ hours: 24 }).toFormat("dd/MM/yyyy")} — الساعة{" "}
                 {DateTime.fromISO(`${draft.deliveryDate}T${draft.deliveryTime}`, { zone: "Africa/Casablanca" })
                   .plus({ hours: 24 }).toFormat("HH:mm")}
               </p>
-            ) : <p>اختر تاريخ ووقت الاستلام لعرض موعد الإرجاع.</p>}
-            <p>مدة الكراء 24 ساعة كاملة من وقت الاستلام. راجع الموعد أعلاه قبل إرسال الطلب. لا تُطلب أسماء الأفراد أو خيارات الطباعة في الكراء.</p>
+            ) : <p>{tr("اختر تاريخ ووقت الاستلام لعرض موعد الإرجاع.", "Choose a collection date and time to see the return time.")}</p>}
+            <p>{tr("مدة الكراء 24 ساعة كاملة من وقت الاستلام. راجع الموعد أعلاه قبل إرسال الطلب. لا تُطلب أسماء الأفراد أو خيارات الطباعة في الكراء.", "The rental period is 24 hours from collection. Check the return time above before submitting. Member names and printing options are not required for rentals.")}</p>
           </div>
         )}
       </section>
@@ -496,26 +499,26 @@ export default function GroupOrderClient() {
           maxLength={2000}
           value={draft.notes}
           onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value }))}
-          placeholder="أي تفاصيل إضافية عن المجموعة أو المناسبة"
+          placeholder={tr("أي تفاصيل إضافية عن المجموعة أو المناسبة", "Any additional details about the group or event")}
         />
       </section>
 
       {priceEstimate && (
         <aside className="orderSummary" aria-live="polite">
-          <div><span>سعر الفرد الواحد</span><strong>{priceEstimate.unit} درهم</strong></div>
-          <div><span>مجموع المنتجات ({draft.quantity} أفراد)</span><strong>{priceEstimate.productsTotal} درهم</strong></div>
-          <div><span>التوصيل</span><strong>{priceEstimate.delivery} درهم</strong></div>
-          <div className="summaryTotal"><span>التقدير الإجمالي للمجموعة</span><strong>{priceEstimate.total} درهم</strong></div>
-          <p className="sectionHint">تقدير وفق الأسعار الحالية للمنتجات ورسوم التوصيل، دون خصم كميات. يُؤكد السعر النهائي بعد مراجعة الطلب.</p>
+          <div><span>{tr("سعر الفرد الواحد", "Price per person")}</span><strong>{priceEstimate.unit} {tr("درهم", "MAD")}</strong></div>
+          <div><span>مجموع المنتجات ({draft.quantity} {tr("أفراد", "people")})</span><strong>{priceEstimate.productsTotal} {tr("درهم", "MAD")}</strong></div>
+          <div><span>{tr("التوصيل", "Delivery")}</span><strong>{priceEstimate.delivery} {tr("درهم", "MAD")}</strong></div>
+          <div className="summaryTotal"><span>{tr("التقدير الإجمالي للمجموعة", "Estimated group total")}</span><strong>{priceEstimate.total} {tr("درهم", "MAD")}</strong></div>
+          <p className="sectionHint">{tr("تقدير وفق الأسعار الحالية للمنتجات ورسوم التوصيل، دون خصم كميات. يُؤكد السعر النهائي بعد مراجعة الطلب.", "Estimate based on current product prices and delivery fees, with no group discount. The final price will be confirmed after reviewing the order.")}</p>
         </aside>
       )}
-      {loadingPricing && <p className="formNotice">جاري تحميل الأسعار الحالية…</p>}
-      {!loadingPricing && !priceEstimate && <p className="formError">تعذر احتساب السعر حاليًا. تحقق من اختيار المنتج والمدينة أو أعد تحميل الصفحة.</p>}
+      {loadingPricing && <p className="formNotice">{tr("جاري تحميل الأسعار الحالية…", "Loading current prices…")}</p>}
+      {!loadingPricing && !priceEstimate && <p className="formError">{tr("تعذر احتساب السعر حاليًا. تحقق من اختيار المنتج والمدينة أو أعد تحميل الصفحة.", "The price cannot be calculated right now. Check the selected product and city, or refresh the page.")}</p>}
 
       <button className="submitOrder" type="submit" disabled={submitting || uploading || loadingPricing || !priceEstimate || shop.maintenanceMode || !shop.acceptingOrders || (draft.orderType === "شراء" && !shop.purchaseEnabled) || (draft.orderType === "كراء" && !shop.rentalEnabled)}>
         {submitting ? "جاري إرسال الطلب…" : "إرسال الطلب الجماعي"}
       </button>
-      <p className="privacyNote">لا يحتاج أي فرد من المجموعة إلى إنشاء حساب.</p>
+      <p className="privacyNote">{tr("لا يحتاج أي فرد من المجموعة إلى إنشاء حساب.", "No group member needs to create an account.")}</p>
     </form>
   );
 }
