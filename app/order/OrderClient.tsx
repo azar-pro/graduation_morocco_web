@@ -216,7 +216,7 @@ export default function OrderClient() {
                     referenceImages: [],
                   }));
                 }
-              }}>{value}</button>
+              }}>{tr(value, value === "شراء" ? "Purchase" : "Rental")}</button>
           ))}
         </div>
       </section>
