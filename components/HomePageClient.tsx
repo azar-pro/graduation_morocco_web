@@ -5,8 +5,6 @@ import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 
-type Locale = "ar" | "en";
-
 const copy = {
   ar: {
     home: "الرئيسية",
