@@ -21,6 +21,14 @@ const labels: Record<string,string> = {
 };
 
 function value(x: unknown){ const s=String(x??"").trim(); return s||"—"; }
+function dateValue(x: unknown){
+  const candidate = x && typeof x === "object" && "toDate" in x && typeof x.toDate === "function"
+    ? x.toDate() as Date
+    : x instanceof Date ? x : null;
+  return candidate && !Number.isNaN(candidate.getTime())
+    ? new Intl.DateTimeFormat("ar-MA", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Casablanca" }).format(candidate)
+    : value(x);
+}
 
 export default function AdminGroupOrderDetailClient(){
   const params=useParams<{groupOrderNumber:string}>();
@@ -110,6 +118,9 @@ export default function AdminGroupOrderDetailClient(){
               <h2>الموعد</h2>
               <dl>
                 <div><dt>طريقة الاستلام</dt><dd>{value(order.deliveryMethod)}</dd></div>
+                <div><dt>موعد الاستلام</dt><dd>{dateValue(order.scheduledAt)}</dd></div>
+                {String(order.orderType)==="كراء" && <div><dt>موعد الإرجاع</dt><dd>{dateValue(order.returnAt)}</dd></div>}
+                <div><dt>المدينة</dt><dd>{value(order.city)}</dd></div>
                 <div><dt>ملاحظات</dt><dd>{value(order.notes)}</dd></div>
               </dl>
             </article>
