@@ -1810,3 +1810,21 @@
 .contactPageLinks{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
 .contactPageLinks a{border:1px solid rgba(13,34,56,.16);border-radius:999px;padding:9px 13px;font-weight:800;font-size:14px}
 @media(max-width:680px){.contactPageGrid{grid-template-columns:1fr}.contactPageCard{padding:23px}}
+
+
+/* Group order shared customization */
+.groupOverLimit{max-width:620px;margin:24px auto;padding:32px;border:1px solid rgba(201,164,92,.32);border-radius:24px;background:#fff;box-shadow:0 16px 42px rgba(13,34,56,.07);display:grid;gap:14px;text-align:center}
+.groupOverLimit .eyebrow{margin:0;color:#a47b31;font-size:12px}
+.groupOverLimit h2{margin:0;font-size:clamp(24px,4vw,32px);line-height:1.35}
+.groupOverLimit p{margin:0;color:#65717d;line-height:1.9}
+.groupOverLimit .submitOrder{display:flex;align-items:center;justify-content:center;min-height:52px;padding:12px 20px}
+.groupOverLimit .choice{width:100%;border:1px solid rgba(13,34,56,.14);background:#fff}
+.groupReferenceItem{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid rgba(13,34,56,.07);font-size:13px}
+.groupReferenceItem a{font-weight:800;color:#9d7734;text-decoration:underline;text-underline-offset:3px}
+.groupReferenceItem button{border:0;background:transparent;color:#9a4545;font:inherit;font-weight:800;cursor:pointer}
+.adminGroupPrintRow{padding:12px 0;border-top:1px solid rgba(13,34,56,.08)}
+.adminGroupPrintRow p{margin:5px 0;color:#65717d}
+.adminGroupPrintRow a{color:#9d7734;font-weight:800;text-decoration:underline}
+.adminGroupReferenceGrid{display:flex;flex-wrap:wrap;gap:10px}
+.adminGroupReferenceGrid a{padding:9px 13px;border:1px solid rgba(201,164,92,.35);border-radius:999px;font-weight:800;color:#9d7734}
+@media(max-width:680px){.groupOverLimit{padding:22px 16px;border-radius:18px}.groupOverLimit h2{font-size:24px}}
