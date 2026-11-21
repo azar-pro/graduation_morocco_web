@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { DateTime } from "luxon";
 import { submitGroupOrder, type GroupOrderDraft, type GroupPrintingOption } from "@/lib/group-orders";
 import { uploadGraduationImage } from "@/lib/image-upload";
@@ -67,7 +68,7 @@ const initial: GroupOrderDraft = {
 
 export default function GroupOrderClient() {
   const { isArabic } = useLanguage();
-  const tr = (ar: string, en: string) => isArabic ? ar : en;
+  const tr = useCallback((ar: string, en: string) => isArabic ? ar : en, [isArabic]);
   const [draft, setDraft] = useState<GroupOrderDraft>(initial);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
@@ -91,7 +92,7 @@ export default function GroupOrderClient() {
       })
       .catch(() => setMessage(tr("تعذر تحميل الأسعار وإعدادات الطلب الحالية. حاول تحديث الصفحة.", "Could not load current prices and order settings. Please refresh the page.")))
       .finally(() => setLoadingPricing(false));
-  }, []);
+  }, [tr]);
 
   const minDate = useMemo(() => {
     const now = DateTime.now().setZone("Africa/Casablanca");
@@ -433,7 +434,7 @@ export default function GroupOrderClient() {
               <div className="referenceList">
                 {draft.referenceImages.map((url, index) => (
                   <div className="groupReferenceItem" key={url}>
-                    <a href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`${tr("الصورة المرجعية", "Reference image")} ${index + 1}`} />{tr("عرض الصورة", "View image")} {index + 1}</a>
+                    <a href={url} target="_blank" rel="noopener noreferrer"><Image src={url} alt={`${tr("الصورة المرجعية", "Reference image")} ${index + 1}`} width={96} height={96} unoptimized />{tr("عرض الصورة", "View image")} {index + 1}</a>
                     <button type="button" onClick={() => setDraft((d) => ({ ...d, referenceImages: d.referenceImages.filter((_, i) => i !== index) }))}>{tr("حذف ×", "Remove ×")}</button>
                   </div>
                 ))}
