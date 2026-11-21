@@ -15,6 +15,11 @@ const labels: Record<string, string> = {
   cancelled: "ملغي",
 };
 
+const englishLabels: Record<string, string> = {
+  received: "Order received", review: "Under review", working: "In progress", printing: "Printing",
+  ready: "Ready", delivery: "Out for delivery", completed: "Delivered", cancelled: "Cancelled",
+};
+
 export default function TrackingClient() {
   const { isArabic } = useLanguage();
   const t = (ar: string, en: string) => isArabic ? ar : en;
@@ -68,7 +73,7 @@ export default function TrackingClient() {
             {results.map((order) => (
               <article className="trackingResult" key={order.orderNumber}>
                 <span className="trackingNumber">{order.orderNumber}</span>
-                <strong>{(isArabic ? (labels[order.status] ?? t("حالة الطلب غير معروفة", "حالة الطلب غير معروفة")) : ({ received: "Order received", review: "Under review", working: "In progress", printing: "Printing", ready: "Ready", delivery: "Out for delivery", completed: "Delivered", cancelled: "Cancelled" }[order.status] ?? "Unknown order status"))}</strong>
+                <strong>{(isArabic ? (labels[order.status] ?? "حالة الطلب غير معروفة") : (englishLabels[order.status] ?? "Unknown order status"))}</strong>
                 <small>{order.orderNumber.startsWith("GRP-") ? `${t("طلب جماعي", "Group order")} · ${order.quantity ?? "—"} ${t("أفراد", "people")}` : t("طلب فردي", "Individual order")} · {t(order.orderType, order.orderType === "شراء" ? "Purchase" : "Rental")} · {t(order.productType, order.productType === "fullOutfit" ? "Full outfit" : order.productType === "shawlAndCap" ? "Shawl and cap" : "Shawl only")}</small>
               </article>
             ))}
