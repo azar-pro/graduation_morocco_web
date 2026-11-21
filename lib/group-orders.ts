@@ -122,7 +122,7 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
     ? (draft.fabric === "ساتان" ? product.purchaseSatin : product.purchaseMoubara)
     : (draft.fabric === "ساتان" ? product.rentalSatin : product.rentalMoubara);
   const hasShawlPrinting = draft.rightShawl.enabled || draft.leftShawl.enabled || draft.backShawl.enabled;
-  const hasCapPrinting = draft.productType !== "shawlOnly" && draft.cap.enabled;
+  const hasCapPrinting = draft.cap.enabled;
   const printingUnitPrice = draft.orderType === "شراء"
     ? (hasShawlPrinting ? 40 : 0) + (hasCapPrinting ? 40 : 0)
     : 0;
