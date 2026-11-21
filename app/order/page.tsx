@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import SiteHeader from "@/components/SiteHeader";
 import OrderClient from "./OrderClient";
 
 export const metadata: Metadata = {
@@ -13,17 +14,7 @@ export const metadata: Metadata = {
 export default function OrderPage() {
   return (
     <div className="orderRoute" dir="rtl">
-      <header className="orderSiteHeader">
-        <Link className="orderBrand" href="/" aria-label="Graduation Morocco — الرئيسية">
-          <Image src="/logo.png" width={188} height={62} alt="Graduation Morocco" priority />
-        </Link>
-        <nav className="orderHeaderNav" aria-label="روابط صفحة الطلب">
-          <Link href="/">الرئيسية</Link>
-          <Link href="/group-orders">الطلب الجماعي</Link>
-          <Link href="/contact">تواصل معنا</Link>
-          <Link href="/track-order">تتبع الطلب</Link>
-        </nav>
-      </header>
+      <SiteHeader />
 
       <main className="utilityPage orderPage">
         <section className="orderShell">
