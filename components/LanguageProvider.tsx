@@ -17,7 +17,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
-      if (saved === "ar" || saved === "en") setLocaleState(saved);
+      if (saved === "ar" || saved === "en") queueMicrotask(() => setLocaleState(saved));
     } catch {}
     setReady(true);
   }, []);
