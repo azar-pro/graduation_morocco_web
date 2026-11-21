@@ -2,7 +2,8 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { DateTime } from "luxon";
-import { submitGroupOrder, type GroupOrderDraft } from "@/lib/group-orders";
+import { submitGroupOrder, type GroupOrderDraft, type GroupPrintingOption } from "@/lib/group-orders";
+import { uploadGraduationImage } from "@/lib/image-upload";
 
 const TIMES = Array.from({ length: 13 }, (_, i) => `${String(i + 9).padStart(2, "0")}:00`);
 const CITIES = ["Fes","Meknes","Sefrou","Ifrane","El Hajeb","Taza","Rabat","Casablanca","Marrakech","Tangier","Agadir","Oujda","Tetouan","Nador"];
@@ -18,6 +19,12 @@ const initial: GroupOrderDraft = {
   deliveryDate: "",
   deliveryTime: "12:00",
   members: Array(5).fill(""),
+  productType: "fullOutfit",
+  rightShawl: { enabled: false, type: "", text: "", logoPath: null },
+  leftShawl: { enabled: false, type: "", text: "", logoPath: null },
+  backShawl: { enabled: false, type: "", text: "", logoPath: null },
+  cap: { enabled: false, type: "", text: "", logoPath: null },
+  referenceImages: [],
   notes: "",
 };
 
@@ -26,6 +33,8 @@ export default function GroupOrderClient() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [expandedPrinting, setExpandedPrinting] = useState<"rightShawl" | "leftShawl" | "backShawl" | "cap" | null>(null);
 
   const minDate = useMemo(
     () => DateTime.now().setZone("Africa/Casablanca").plus({ days: 2 }).toFormat("yyyy-MM-dd"),
@@ -33,7 +42,7 @@ export default function GroupOrderClient() {
   );
 
   function changeQuantity(value: number) {
-    const quantity = Math.max(5, Math.min(100, Math.trunc(value || 5)));
+    const quantity = Math.max(5, Math.trunc(value || 5));
     setDraft((d) => ({
       ...d,
       quantity,
@@ -41,6 +50,24 @@ export default function GroupOrderClient() {
         ? Array.from({ length: quantity }, (_, i) => d.members[i] ?? "")
         : [],
     }));
+  }
+
+  function patchPrinting(key: "rightShawl" | "leftShawl" | "backShawl" | "cap", next: Partial<GroupPrintingOption>) {
+    setDraft((d) => ({ ...d, [key]: { ...d[key], ...next } }));
+  }
+
+  async function addReference(file?: File) {
+    if (!file || draft.referenceImages.length >= 8) return;
+    setUploading(true);
+    setMessage("");
+    try {
+      const url = await uploadGraduationImage(file);
+      setDraft((d) => ({ ...d, referenceImages: [...d.referenceImages, url].slice(0, 8) }));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذر رفع الصورة.");
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function submit(event: FormEvent) {
@@ -55,6 +82,18 @@ export default function GroupOrderClient() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (draft.quantity > 100) {
+    return (
+      <div className="groupOverLimit" role="status">
+        <span className="eyebrow">طلبات المجموعات الكبيرة</span>
+        <h2>للطلبات التي تتجاوز 100 شخص</h2>
+        <p>حتى ننسق احتياجات مجموعتكم بدقة، تواصل معنا مباشرة عبر WhatsApp وسنتابع معك تفاصيل الكمية والتصميم.</p>
+        <a className="submitOrder" href={`https://wa.me/212717208919?text=${encodeURIComponent(`السلام عليكم، أود طلب أكثر من 100 بدلة تخرج. العدد المطلوب: ${draft.quantity}`) }`} target="_blank" rel="noopener noreferrer">تواصل معنا عبر WhatsApp</a>
+        <button type="button" className="choice" onClick={() => changeQuantity(100)}>العودة إلى 100 شخص أو أقل</button>
+      </div>
+    );
   }
 
   if (success) {
@@ -102,7 +141,6 @@ export default function GroupOrderClient() {
             <input
               type="number"
               min={5}
-              max={100}
               value={draft.quantity}
               onChange={(e) => changeQuantity(Number(e.target.value))}
               required
@@ -134,7 +172,20 @@ export default function GroupOrderClient() {
 
       {draft.orderType === "شراء" && (
         <section className="formSection">
-          <h2>3. أسماء أفراد المجموعة</h2>
+          <h2>3. المنتج</h2>
+          <p className="sectionHint">اختر ما سيتم توفيره لجميع أفراد المجموعة.</p>
+          <div className="choiceGrid">
+            <button type="button" className={draft.productType === "fullOutfit" ? "choice active" : "choice"}
+              onClick={() => setDraft((d) => ({ ...d, productType: "fullOutfit" }))}>بدلة تخرج كاملة</button>
+            <button type="button" className={draft.productType === "shawlAndCap" ? "choice active" : "choice"}
+              onClick={() => setDraft((d) => ({ ...d, productType: "shawlAndCap" }))}>وشاح وقبعة فقط دون البدلة</button>
+          </div>
+        </section>
+      )}
+
+      {draft.orderType === "شراء" && (
+        <section className="formSection">
+          <h2>4. أسماء أفراد المجموعة</h2>
           <p className="sectionHint">أدخل اسمًا لكل فرد. يجب أن يطابق عدد الأسماء عدد أفراد الطلب.</p>
           <div className="membersGrid">
             {draft.members.map((member, index) => (
@@ -156,8 +207,101 @@ export default function GroupOrderClient() {
         </section>
       )}
 
+      {draft.orderType === "شراء" && (
+        <section className="formSection">
+          <h2>5. تخصيص الطباعة للمجموعة</h2>
+          <p className="sectionHint">خصص نموذجًا واحدًا فقط هنا؛ سيتم اعتماد التصميم والاختيارات نفسها وتعميمها على جميع أفراد المجموعة. هذه الخيارات متاحة للشراء فقط.</p>
+          <div className="printingGrid">
+            {([
+              ["rightShawl", "الجانب الأيمن من الوشاح"],
+              ["leftShawl", "الجانب الأيسر من الوشاح"],
+              ["backShawl", "ظهر الوشاح"],
+              ["cap", "القبعة"],
+            ] as const).map(([key, label]) => {
+              const option = draft[key];
+              return (
+                <article className={option.enabled ? "printingCard isActive" : "printingCard"} key={key}>
+                  <div className="printingHead">
+                    <label className="toggleRow">
+                      <input className="toggleInput" type="checkbox" checked={option.enabled}
+                        onChange={(e) => {
+                          const enabled = e.target.checked;
+                          patchPrinting(key, enabled
+                            ? { enabled: true, type: option.type || "text" }
+                            : { enabled: false, type: "", text: "", logoPath: null });
+                          setExpandedPrinting(enabled ? key : (expandedPrinting === key ? null : expandedPrinting));
+                        }} />
+                      <span className="toggleVisual" aria-hidden="true"><span /></span>
+                      <strong>{label}</strong>
+                    </label>
+                    {option.enabled && <button className="printingExpand" type="button"
+                      aria-expanded={expandedPrinting === key}
+                      onClick={() => setExpandedPrinting((current) => current === key ? null : key)}>
+                      {expandedPrinting === key ? "إغلاق" : "تعديل"}
+                    </button>}
+                  </div>
+                  {option.enabled && expandedPrinting === key && (
+                    <div className="printingDetails">
+                      <label>نوع الطباعة
+                        <select value={option.type} onChange={(e) => patchPrinting(key, { type: e.target.value as GroupPrintingOption["type"] })}>
+                          <option value="text">نص</option><option value="logo">شعار</option><option value="both">نص + شعار</option>
+                        </select>
+                      </label>
+                      {(option.type === "text" || option.type === "both") && (
+                        <label>النص المطلوب
+                          <input maxLength={500} value={option.text} onChange={(e) => patchPrinting(key, { text: e.target.value })} />
+                        </label>
+                      )}
+                      {(option.type === "logo" || option.type === "both") && (
+                        <div className="uploadField">
+                          <span className="uploadLabel">رفع الشعار</span>
+                          <label className={uploading ? "customUpload isDisabled" : "customUpload"}>
+                            <input type="file" accept="image/*" disabled={uploading}
+                              onChange={(e) => { void (async () => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                setUploading(true);
+                                try { const url = await uploadGraduationImage(file); patchPrinting(key, { logoPath: url }); }
+                                catch (error) { setMessage(error instanceof Error ? error.message : "تعذر رفع الشعار."); }
+                                finally { setUploading(false); }
+                              })(); }} />
+                            <span className="uploadIcon">↑</span><span>{option.logoPath ? "استبدال الشعار" : "اختر صورة الشعار"}</span>
+                          </label>
+                          {option.logoPath && <span className="uploadDone">تم رفع الشعار ✓</span>}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+          <div className="referenceBox">
+            <h3>صور مرجعية للتصميم</h3>
+            <p>ارفع حتى 8 صور توضح الشكل المطلوب، وستكون مرجعًا موحدًا لتنفيذ المجموعة.</p>
+            <label className={(uploading || draft.referenceImages.length >= 8) ? "customUpload referenceUpload isDisabled" : "customUpload referenceUpload"}>
+              <input type="file" accept="image/*" disabled={uploading || draft.referenceImages.length >= 8}
+                onChange={(e) => { void addReference(e.target.files?.[0]); e.currentTarget.value = ""; }} />
+              <span className="uploadIcon">↑</span>
+              <span>{uploading ? "جاري رفع الصورة…" : draft.referenceImages.length >= 8 ? "تم رفع الحد الأقصى" : "إضافة صورة"}</span>
+              <strong>{draft.referenceImages.length}/8</strong>
+            </label>
+            {draft.referenceImages.length > 0 && (
+              <div className="referenceList">
+                {draft.referenceImages.map((url, index) => (
+                  <div className="groupReferenceItem" key={url}>
+                    <a href={url} target="_blank" rel="noopener noreferrer">عرض الصورة {index + 1}</a>
+                    <button type="button" onClick={() => setDraft((d) => ({ ...d, referenceImages: d.referenceImages.filter((_, i) => i !== index) }))}>حذف ×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       <section className="formSection">
-        <h2>{draft.orderType === "شراء" ? "4" : "3"}. الاستلام والتوصيل</h2>
+        <h2>{draft.orderType === "شراء" ? "6" : "3"}. الاستلام والتوصيل</h2>
         <div className="choiceGrid">
           <button
             type="button"
@@ -238,7 +382,7 @@ export default function GroupOrderClient() {
       </section>
 
       <section className="formSection">
-        <h2>{draft.orderType === "شراء" ? "5" : "4"}. ملاحظات</h2>
+        <h2>{draft.orderType === "شراء" ? "7" : "4"}. ملاحظات</h2>
         <textarea
           rows={4}
           maxLength={2000}
@@ -248,7 +392,7 @@ export default function GroupOrderClient() {
         />
       </section>
 
-      <button className="submitOrder" type="submit" disabled={submitting}>
+      <button className="submitOrder" type="submit" disabled={submitting || uploading}>
         {submitting ? "جاري إرسال الطلب…" : "إرسال الطلب الجماعي"}
       </button>
       <p className="privacyNote">لا يحتاج أي فرد من المجموعة إلى إنشاء حساب.</p>
