@@ -21,6 +21,14 @@ const labels: Record<string,string> = {
 };
 
 function value(x: unknown){ const s=String(x??"").trim(); return s||"—"; }
+function dateValue(x: unknown){
+  const candidate = x && typeof x === "object" && "toDate" in x && typeof x.toDate === "function"
+    ? x.toDate() as Date
+    : x instanceof Date ? x : null;
+  return candidate && !Number.isNaN(candidate.getTime())
+    ? new Intl.DateTimeFormat("ar-MA", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Casablanca" }).format(candidate)
+    : value(x);
+}
 
 export default function AdminGroupOrderDetailClient(){
   const params=useParams<{groupOrderNumber:string}>();
@@ -31,16 +39,7 @@ export default function AdminGroupOrderDetailClient(){
   const [message,setMessage]=useState("");
   const [saving,setSaving]=useState(false);
 
-  async function refresh(){
-    setLoading(true);
-    try{
-      setOrder(await loadAdminGroupOrder(groupOrderNumber));
-    }catch{
-      setMessage("تعذر تحميل الطلب الجماعي.");
-    }finally{
-      setLoading(false);
-    }
-  }
+
 
   useEffect(()=>{
     loadAdminGroupOrder(groupOrderNumber)
@@ -70,10 +69,16 @@ export default function AdminGroupOrderDetailClient(){
 
           <section className="adminDetailGrid">
             <article className="adminDetailCard">
-              <h2>الطلب</h2>
+              <h2>الطلب والتقدير المالي</h2>
               <dl>
                 <div><dt>النوع</dt><dd>{value(order.orderType)}</dd></div>
                 <div><dt>عدد الأفراد</dt><dd>{Number(order.quantity??0)}</dd></div>
+                <div><dt>نوع القماش</dt><dd>{value(order.fabric)}</dd></div>
+                <div><dt>لون الوشاح</dt><dd>{value(order.shawlColor)}</dd></div>
+                <div><dt>سعر الفرد التقديري</dt><dd>{order.unitPriceApplied == null ? "—" : `${Number(order.unitPriceApplied).toLocaleString("fr-MA")} درهم`}</dd></div>
+                <div><dt>مجموع المنتجات التقديري</dt><dd>{order.productTotalEstimate == null ? "—" : `${Number(order.productTotalEstimate).toLocaleString("fr-MA")} درهم`}</dd></div>
+                <div><dt>رسوم التوصيل التقديرية</dt><dd>{order.deliveryFeeApplied == null ? "—" : `${Number(order.deliveryFeeApplied).toLocaleString("fr-MA")} درهم`}</dd></div>
+                <div><dt>المجموع التقديري</dt><dd><strong>{order.totalPriceEstimate == null ? "يحدد بعد المراجعة" : `${Number(order.totalPriceEstimate).toLocaleString("fr-MA")} درهم`}</strong></dd></div>
                 <div><dt>الحالة</dt><dd>
                   <select value={String(order.status??"received")} disabled={saving}
                     onChange={async e=>{
@@ -104,6 +109,9 @@ export default function AdminGroupOrderDetailClient(){
               <h2>الموعد</h2>
               <dl>
                 <div><dt>طريقة الاستلام</dt><dd>{value(order.deliveryMethod)}</dd></div>
+                <div><dt>موعد الاستلام</dt><dd>{dateValue(order.scheduledAt)}</dd></div>
+                {String(order.orderType)==="كراء" && <div><dt>موعد الإرجاع</dt><dd>{dateValue(order.returnAt)}</dd></div>}
+                <div><dt>المدينة</dt><dd>{value(order.city)}</dd></div>
                 <div><dt>ملاحظات</dt><dd>{value(order.notes)}</dd></div>
               </dl>
             </article>
