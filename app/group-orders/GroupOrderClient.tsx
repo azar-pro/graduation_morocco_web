@@ -21,6 +21,8 @@ const initial: GroupOrderDraft = {
   deliveryTime: "12:00",
   members: Array(5).fill(""),
   productType: "fullOutfit",
+  fabric: "ساتان",
+  shawlColor: "ذهبي",
   rightShawl: { enabled: false, type: "", text: "", logoPath: null },
   leftShawl: { enabled: false, type: "", text: "", logoPath: null },
   backShawl: { enabled: false, type: "", text: "", logoPath: null },
@@ -191,6 +193,24 @@ export default function GroupOrderClient() {
           </div>
         </section>
       )}
+
+      <section className="formSection">
+        <h2>مواصفات الثوب</h2>
+        <p className="sectionHint">اختر نوع القماش ولون الوشاح الموحد لجميع أفراد المجموعة.</p>
+        <div className="fieldGrid">
+          <label>
+            نوع القماش
+            <select value={draft.fabric} onChange={(e) => setDraft((d) => ({ ...d, fabric: e.target.value as GroupOrderDraft["fabric"] }))}>
+              <option value="ساتان">ساتان</option>
+              <option value="موبرة">موبرة</option>
+            </select>
+          </label>
+          <label>
+            لون الوشاح
+            <input value={draft.shawlColor} onChange={(e) => setDraft((d) => ({ ...d, shawlColor: e.target.value }))} maxLength={80} required />
+          </label>
+        </div>
+      </section>
 
       {draft.orderType === "شراء" && (
         <section className="formSection">
