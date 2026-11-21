@@ -78,7 +78,7 @@ export default function GroupOrderClient() {
       : (draft.fabric === "ساتان" ? product.rentalSatin : product.rentalMoubara);
     if (baseUnit <= 0) return null;
     const shawlPrint = draft.orderType === "شراء" && (draft.rightShawl.enabled || draft.leftShawl.enabled || draft.backShawl.enabled);
-    const capPrint = draft.orderType === "شراء" && draft.productType !== "shawlOnly" && draft.cap.enabled;
+    const capPrint = draft.orderType === "شراء" && draft.cap.enabled;
     const unit = baseUnit + (shawlPrint ? 40 : 0) + (capPrint ? 40 : 0);
     const city = cities.find((item) => item.name === draft.city && item.active);
     if (draft.deliveryMethod === "homeDelivery" && !city) return null;
