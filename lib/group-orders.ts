@@ -3,6 +3,7 @@
 import { doc, serverTimestamp, setDoc, Timestamp } from "firebase/firestore";
 import { DateTime } from "luxon";
 import { db } from "@/lib/firebase";
+import { loadDeliveryCities, loadOrderRules, loadProducts, loadShopSettings } from "@/lib/public-data";
 
 export type GroupPrintingOption = {
   enabled: boolean;
@@ -53,6 +54,13 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
   const phone = draft.phoneNumber.replace(/\s+/g, "");
   const address = draft.address.trim();
   const notes = draft.notes.trim();
+  const [shop, rules, products, cities] = await Promise.all([
+    loadShopSettings(), loadOrderRules(), loadProducts(), loadDeliveryCities(),
+  ]);
+
+  if (shop.maintenanceMode || !shop.acceptingOrders) throw new Error("استقبال الطلبات متوقف مؤقتًا.");
+  if (draft.orderType === "شراء" && !shop.purchaseEnabled) throw new Error("طلبات الشراء متوقفة مؤقتًا.");
+  if (draft.orderType === "كراء" && !shop.rentalEnabled) throw new Error("طلبات الكراء متوقفة مؤقتًا.");
 
   if (quantity < 5) {
     throw new Error("الحد الأدنى للطلب الجماعي هو 5 أشخاص.");
@@ -83,8 +91,13 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
     { zone: TZ },
   );
   if (!scheduled.isValid) throw new Error("موعد الطلب غير صالح.");
-  if (scheduled < DateTime.now().setZone(TZ).plus({ hours: 24 })) {
-    throw new Error("الطلب الجماعي يحتاج حجزًا قبل 24 ساعة على الأقل.");
+  const minimum = draft.orderType === "شراء"
+    ? DateTime.now().setZone(TZ).plus({ days: rules.purchasePreparationDays })
+    : DateTime.now().setZone(TZ).plus({ hours: rules.rentalAdvanceHours });
+  if (scheduled < minimum) {
+    throw new Error(draft.orderType === "شراء"
+      ? `الشراء الجماعي يحتاج ${rules.purchasePreparationDays} يوم/أيام على الأقل للتحضير.`
+      : `الكراء الجماعي يحتاج حجزًا مسبقًا بـ${rules.rentalAdvanceHours} ساعة على الأقل.`);
   }
 
   const members = draft.members.map((x) => x.trim()).filter(Boolean);
@@ -102,6 +115,23 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
       throw new Error("أحد أسماء الأفراد أطول من المسموح.");
     }
   }
+
+  const product = products.find((item) => item.productType === (draft.orderType === "كراء" ? "fullOutfit" : draft.productType));
+  if (!product) throw new Error("المنتج المحدد غير متاح حاليًا.");
+  const baseUnitPrice = draft.orderType === "شراء"
+    ? (draft.fabric === "ساتان" ? product.purchaseSatin : product.purchaseMoubara)
+    : (draft.fabric === "ساتان" ? product.rentalSatin : product.rentalMoubara);
+  const hasShawlPrinting = draft.rightShawl.enabled || draft.leftShawl.enabled || draft.backShawl.enabled;
+  const hasCapPrinting = draft.productType !== "shawlOnly" && draft.cap.enabled;
+  const printingUnitPrice = draft.orderType === "شراء"
+    ? (hasShawlPrinting ? 40 : 0) + (hasCapPrinting ? 40 : 0)
+    : 0;
+  const unitPriceApplied = baseUnitPrice + printingUnitPrice;
+  const deliveryCity = cities.find((item) => item.name === draft.city && item.active);
+  if (draft.deliveryMethod === "homeDelivery" && !deliveryCity) throw new Error("مدينة التوصيل المحددة غير متاحة حاليًا.");
+  const deliveryFeeApplied = draft.deliveryMethod === "pickup" ? 0 : (deliveryCity?.price ?? 0);
+  const productTotalEstimate = unitPriceApplied * quantity;
+  const totalPriceEstimate = productTotalEstimate + deliveryFeeApplied;
 
   const number = makeCode();
   const returnAt = draft.orderType === "كراء" ? scheduled.plus({ hours: 24 }) : null;
@@ -164,6 +194,14 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
     referenceImages,
     customizationScope: "shared_group_design",
     notes,
+    unitPriceApplied,
+    productTotalEstimate,
+    deliveryFeeApplied,
+    totalPriceEstimate,
+    priceEstimateCurrency: "MAD",
+    priceEstimateBasis: "current_catalog_prices_no_group_discount",
+    purchasePreparationDaysApplied: rules.purchasePreparationDays,
+    rentalAdvanceHoursApplied: rules.rentalAdvanceHours,
     status: "received",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
