@@ -184,7 +184,7 @@ export default function GroupOrderClient() {
                   : [],
               }))}
             >
-              {type}
+              {tr(type, type === "شراء" ? "Purchase" : "Rental")}
             </button>
           ))}
         </div>
@@ -292,7 +292,7 @@ export default function GroupOrderClient() {
                     })();
                   }} />
                 <span className="uploadIcon">↑</span>
-                <span>{uploading ? "جاري رفع الملف…" : "اختيار ملف Excel"}</span>
+                <span>{uploading ? tr("جاري رفع الملف…", "Uploading file…") : tr("اختيار ملف Excel", "Choose Excel file")}</span>
               </label>
             )}
           </div>
@@ -394,7 +394,7 @@ export default function GroupOrderClient() {
               <input type="file" accept="image/*" disabled={uploading || draft.referenceImages.length >= 8}
                 onChange={(e) => { void addReference(e.target.files?.[0]); e.currentTarget.value = ""; }} />
               <span className="uploadIcon">↑</span>
-              <span>{uploading ? "جاري رفع الصورة…" : draft.referenceImages.length >= 8 ? "تم رفع الحد الأقصى" : "إضافة صورة"}</span>
+              <span>{uploading ? tr("جاري رفع الصورة…", "Uploading image…") : draft.referenceImages.length >= 8 ? tr("تم رفع الحد الأقصى", "Maximum reached") : tr("إضافة صورة", "Add image")}</span>
               <strong>{draft.referenceImages.length}/8</strong>
             </label>
             {draft.referenceImages.length > 0 && (
@@ -412,27 +412,27 @@ export default function GroupOrderClient() {
       )}
 
       <section className="formSection">
-        <h2>{draft.orderType === "شراء" ? "6" : "3"}. الاستلام والتوصيل</h2>
+        <h2>{draft.orderType === "شراء" ? "6" : "3"}. {tr("الاستلام", "Pickup")} والتوصيل</h2>
         <div className="choiceGrid">
           <button
             type="button"
             className={draft.deliveryMethod === "homeDelivery" ? "choice active" : "choice"}
             onClick={() => setDraft((d) => ({ ...d, deliveryMethod: "homeDelivery" }))}
           >
-            توصيل للمنزل
+            {tr("توصيل للمنزل", "Home delivery")}
           </button>
           <button
             type="button"
             className={draft.deliveryMethod === "pickup" ? "choice active" : "choice"}
             onClick={() => setDraft((d) => ({ ...d, deliveryMethod: "pickup", city: "Fes", address: "" }))}
           >
-            الاستلام
+            {tr("الاستلام", "Pickup")}
           </button>
         </div>
 
         <div className="fieldGrid">
           <label>
-            المدينة
+            {tr("المدينة", "City")}
             <select
               value={draft.city}
               disabled={draft.deliveryMethod === "pickup"}
@@ -444,7 +444,7 @@ export default function GroupOrderClient() {
 
           {draft.deliveryMethod === "homeDelivery" && (
             <label>
-              العنوان
+              {tr("العنوان", "Address")}
               <input
                 value={draft.address}
                 onChange={(e) => setDraft((d) => ({ ...d, address: e.target.value }))}
@@ -455,7 +455,7 @@ export default function GroupOrderClient() {
           )}
 
           <label>
-            تاريخ الاستلام
+            تاريخ {tr("الاستلام", "Pickup")}
             <input
               type="date"
               min={minDate}
@@ -466,7 +466,7 @@ export default function GroupOrderClient() {
           </label>
 
           <label>
-            الوقت
+            {tr("الوقت", "Time")}
             <select
               value={draft.deliveryTime}
               onChange={(e) => setDraft((d) => ({ ...d, deliveryTime: e.target.value }))}
@@ -482,18 +482,18 @@ export default function GroupOrderClient() {
             {draft.deliveryDate ? (
               <p>
                 {DateTime.fromISO(`${draft.deliveryDate}T${draft.deliveryTime}`, { zone: "Africa/Casablanca" })
-                  .plus({ hours: 24 }).toFormat("dd/MM/yyyy")} — الساعة{" "}
+                  .plus({ hours: 24 }).toFormat("dd/MM/yyyy")} — {tr("الساعة", "at")}{" "}
                 {DateTime.fromISO(`${draft.deliveryDate}T${draft.deliveryTime}`, { zone: "Africa/Casablanca" })
                   .plus({ hours: 24 }).toFormat("HH:mm")}
               </p>
-            ) : <p>{tr("اختر تاريخ ووقت الاستلام لعرض موعد الإرجاع.", "Choose a collection date and time to see the return time.")}</p>}
-            <p>{tr("مدة الكراء 24 ساعة كاملة من وقت الاستلام. راجع الموعد أعلاه قبل إرسال الطلب. لا تُطلب أسماء الأفراد أو خيارات الطباعة في الكراء.", "The rental period is 24 hours from collection. Check the return time above before submitting. Member names and printing options are not required for rentals.")}</p>
+            ) : <p>{tr("اختر تاريخ ووقت {tr("الاستلام", "Pickup")} لعرض موعد الإرجاع.", "Choose a collection date and time to see the return time.")}</p>}
+            <p>{tr("مدة الكراء 24 ساعة كاملة من وقت {tr("الاستلام", "Pickup")}. راجع الموعد أعلاه قبل إرسال الطلب. لا تُطلب أسماء الأفراد أو خيارات الطباعة في الكراء.", "The rental period is 24 hours from collection. Check the return time above before submitting. Member names and printing options are not required for rentals.")}</p>
           </div>
         )}
       </section>
 
       <section className="formSection">
-        <h2>{draft.orderType === "شراء" ? "7" : "4"}. ملاحظات</h2>
+        <h2>{draft.orderType === "شراء" ? "7" : "4"}. {tr("ملاحظات", "Notes")}</h2>
         <textarea
           rows={4}
           maxLength={2000}
@@ -506,7 +506,7 @@ export default function GroupOrderClient() {
       {priceEstimate && (
         <aside className="orderSummary" aria-live="polite">
           <div><span>{tr("سعر الفرد الواحد", "Price per person")}</span><strong>{priceEstimate.unit} {tr("درهم", "MAD")}</strong></div>
-          <div><span>مجموع المنتجات ({draft.quantity} {tr("أفراد", "people")})</span><strong>{priceEstimate.productsTotal} {tr("درهم", "MAD")}</strong></div>
+          <div><span>{tr("مجموع المنتجات", "Products subtotal")} ({draft.quantity} {tr("أفراد", "people")})</span><strong>{priceEstimate.productsTotal} {tr("درهم", "MAD")}</strong></div>
           <div><span>{tr("التوصيل", "Delivery")}</span><strong>{priceEstimate.delivery} {tr("درهم", "MAD")}</strong></div>
           <div className="summaryTotal"><span>{tr("التقدير الإجمالي للمجموعة", "Estimated group total")}</span><strong>{priceEstimate.total} {tr("درهم", "MAD")}</strong></div>
           <p className="sectionHint">{tr("تقدير وفق الأسعار الحالية للمنتجات ورسوم التوصيل، دون خصم كميات. يُؤكد السعر النهائي بعد مراجعة الطلب.", "Estimate based on current product prices and delivery fees, with no group discount. The final price will be confirmed after reviewing the order.")}</p>
@@ -516,7 +516,7 @@ export default function GroupOrderClient() {
       {!loadingPricing && !priceEstimate && <p className="formError">{tr("تعذر احتساب السعر حاليًا. تحقق من اختيار المنتج والمدينة أو أعد تحميل الصفحة.", "The price cannot be calculated right now. Check the selected product and city, or refresh the page.")}</p>}
 
       <button className="submitOrder" type="submit" disabled={submitting || uploading || loadingPricing || !priceEstimate || shop.maintenanceMode || !shop.acceptingOrders || (draft.orderType === "شراء" && !shop.purchaseEnabled) || (draft.orderType === "كراء" && !shop.rentalEnabled)}>
-        {submitting ? "جاري إرسال الطلب…" : "إرسال الطلب الجماعي"}
+        {submitting ? tr("جاري إرسال الطلب…", "Submitting order…") : tr("إرسال الطلب الجماعي", "Submit group order")}
       </button>
       <p className="privacyNote">{tr("لا يحتاج أي فرد من المجموعة إلى إنشاء حساب.", "No group member needs to create an account.")}</p>
     </form>
