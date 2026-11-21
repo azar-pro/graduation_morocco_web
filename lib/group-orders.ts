@@ -234,6 +234,7 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
       status: "received",
       orderType: draft.orderType,
       productType: isPurchase ? draft.productType : "fullOutfit",
+      quantity,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
