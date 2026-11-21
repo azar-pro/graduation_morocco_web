@@ -122,6 +122,12 @@ export default function GroupOrderClient() {
               onClick={() => setDraft((d) => ({
                 ...d,
                 orderType: type,
+                productType: type === "كراء" ? "fullOutfit" : d.productType,
+                rightShawl: type === "كراء" ? { enabled: false, type: "", text: "", logoPath: null } : d.rightShawl,
+                leftShawl: type === "كراء" ? { enabled: false, type: "", text: "", logoPath: null } : d.leftShawl,
+                backShawl: type === "كراء" ? { enabled: false, type: "", text: "", logoPath: null } : d.backShawl,
+                cap: type === "كراء" ? { enabled: false, type: "", text: "", logoPath: null } : d.cap,
+                referenceImages: type === "كراء" ? [] : d.referenceImages,
                 members: type === "شراء"
                   ? Array.from({ length: d.quantity }, (_, i) => d.members[i] ?? "")
                   : [],
