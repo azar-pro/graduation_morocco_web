@@ -4,6 +4,13 @@ import { doc, serverTimestamp, setDoc, Timestamp } from "firebase/firestore";
 import { DateTime } from "luxon";
 import { db } from "@/lib/firebase";
 
+export type GroupPrintingOption = {
+  enabled: boolean;
+  type: "" | "text" | "logo" | "both";
+  text: string;
+  logoPath: string | null;
+};
+
 export type GroupOrderDraft = {
   orderType: "شراء" | "كراء";
   quantity: number;
@@ -15,6 +22,12 @@ export type GroupOrderDraft = {
   deliveryDate: string;
   deliveryTime: string;
   members: string[];
+  productType: "fullOutfit" | "shawlAndCap";
+  rightShawl: GroupPrintingOption;
+  leftShawl: GroupPrintingOption;
+  backShawl: GroupPrintingOption;
+  cap: GroupPrintingOption;
+  referenceImages: string[];
   notes: string;
 };
 
@@ -37,8 +50,14 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
   const address = draft.address.trim();
   const notes = draft.notes.trim();
 
-  if (quantity < 5 || quantity > 100) {
-    throw new Error("عدد أفراد الطلب الجماعي يجب أن يكون بين 5 و100.");
+  if (quantity < 5) {
+    throw new Error("الحد الأدنى للطلب الجماعي هو 5 أشخاص.");
+  }
+  if (quantity > 100) {
+    throw new Error("للطلبات التي تتجاوز 100 شخص، يرجى التواصل معنا عبر WhatsApp.");
+  }
+  if (draft.orderType === "كراء" && draft.productType !== "fullOutfit") {
+    throw new Error("خيار الوشاح والقبعة فقط متاح للشراء وليس للكراء.");
   }
   if (name.length < 3 || name.length > 120) {
     throw new Error("أدخل اسم المسؤول عن الطلب.");
@@ -74,6 +93,40 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
   const number = makeCode();
   const returnAt = draft.orderType === "كراء" ? scheduled.plus({ hours: 24 }) : null;
 
+  const disabledPrinting = (): GroupPrintingOption => ({
+    enabled: false, type: "", text: "", logoPath: null,
+  });
+  const normalizePrinting = (option: GroupPrintingOption): GroupPrintingOption => {
+    if (!option.enabled) return disabledPrinting();
+    const text = option.text.trim();
+    const logoPath = option.logoPath?.trim() || null;
+    if (!["text", "logo", "both"].includes(option.type)) {
+      throw new Error("اختر نوع الطباعة لكل موضع تم تفعيله.");
+    }
+    if ((option.type === "text" || option.type === "both") && (!text || text.length > 500)) {
+      throw new Error("أدخل نص الطباعة المطلوب بشكل صحيح.");
+    }
+    if ((option.type === "logo" || option.type === "both") && (!logoPath || !logoPath.startsWith("https://"))) {
+      throw new Error("ارفع شعارًا صالحًا للطباعة.");
+    }
+    return {
+      enabled: true,
+      type: option.type,
+      text: option.type === "logo" ? "" : text,
+      logoPath: option.type === "text" ? null : logoPath,
+    };
+  };
+
+  const isPurchase = draft.orderType === "شراء";
+  const referenceImages = isPurchase ? draft.referenceImages : [];
+  if (referenceImages.length > 8 || referenceImages.some((url) => !url.startsWith("https://"))) {
+    throw new Error("يمكن رفع حتى 8 صور مرجعية صالحة.");
+  }
+  const rightShawl = isPurchase ? normalizePrinting(draft.rightShawl) : disabledPrinting();
+  const leftShawl = isPurchase ? normalizePrinting(draft.leftShawl) : disabledPrinting();
+  const backShawl = isPurchase ? normalizePrinting(draft.backShawl) : disabledPrinting();
+  const cap = isPurchase ? normalizePrinting(draft.cap) : disabledPrinting();
+
   await setDoc(doc(db, "group_orders", number), {
     groupOrderNumber: number,
     orderType: draft.orderType,
@@ -86,6 +139,13 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
     scheduledAt: Timestamp.fromDate(scheduled.toUTC().toJSDate()),
     returnAt: returnAt ? Timestamp.fromDate(returnAt.toUTC().toJSDate()) : null,
     members: draft.orderType === "شراء" ? members : [],
+    productType: isPurchase ? draft.productType : "fullOutfit",
+    rightShawl,
+    leftShawl,
+    backShawl,
+    cap,
+    referenceImages,
+    customizationScope: "shared_group_design",
     notes,
     status: "received",
     createdAt: serverTimestamp(),
