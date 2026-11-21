@@ -1,6 +1,6 @@
 "use client";
 
-import { doc, serverTimestamp, setDoc, Timestamp } from "firebase/firestore";
+import { doc, runTransaction, serverTimestamp, Timestamp } from "firebase/firestore";
 import { DateTime } from "luxon";
 import { db } from "@/lib/firebase";
 import { loadDeliveryCities, loadOrderRules, loadProducts, loadShopSettings } from "@/lib/public-data";
@@ -130,6 +130,7 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
   const deliveryCity = cities.find((item) => item.name === draft.city && item.active);
   if (draft.deliveryMethod === "homeDelivery" && !deliveryCity) throw new Error("مدينة التوصيل المحددة غير متاحة حاليًا.");
   const deliveryFeeApplied = draft.deliveryMethod === "pickup" ? 0 : (deliveryCity?.price ?? 0);
+  const deliveryPricingDocumentId = draft.deliveryMethod === "pickup" ? "" : (deliveryCity?.id ?? "");
   const productTotalEstimate = unitPriceApplied * quantity;
   const totalPriceEstimate = productTotalEstimate + deliveryFeeApplied;
 
@@ -170,7 +171,26 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
   const backShawl = isPurchase ? normalizePrinting(draft.backShawl) : disabledPrinting();
   const cap = isPurchase ? normalizePrinting(draft.cap) : disabledPrinting();
 
-  await setDoc(doc(db, "group_orders", number), {
+  const groupOrderRef = doc(db, "group_orders", number);
+  const trackingRef = doc(db, "order_tracking", number);
+  const phoneLookupRef = doc(db, "tracking_phone_lookup", phone);
+
+  await runTransaction(db, async (transaction) => {
+    const lookupSnap = await transaction.get(phoneLookupRef);
+    const existing = lookupSnap.exists() ? lookupSnap.data() : {};
+    const previous = new Set<string>();
+    const isTrackingNumber = (value: string) => /^GM-[0-9]{4}-[0-9]{6}$/.test(value) || /^GRP-[0-9]{4}-[A-HJ-NP-Z2-9]{8}$/.test(value);
+    if (Array.isArray(existing.orderNumbers)) {
+      existing.orderNumbers.forEach((item: unknown) => {
+        const value = String(item ?? "");
+        if (isTrackingNumber(value)) previous.add(value);
+      });
+    } else if (typeof existing.orderNumber === "string" && isTrackingNumber(existing.orderNumber)) {
+      previous.add(existing.orderNumber);
+    }
+    previous.add(number);
+
+    transaction.set(groupOrderRef, {
     groupOrderNumber: number,
     orderType: draft.orderType,
     quantity,
@@ -185,6 +205,7 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
     membersExcelUrl,
     membersExcelName,
     productType: isPurchase ? draft.productType : "fullOutfit",
+    catalogProductId: product.id,
     fabric: draft.fabric,
     shawlColor,
     rightShawl,
@@ -197,6 +218,7 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
     unitPriceApplied,
     productTotalEstimate,
     deliveryFeeApplied,
+    deliveryPricingDocumentId,
     totalPriceEstimate,
     priceEstimateCurrency: "MAD",
     priceEstimateBasis: "current_catalog_prices_no_group_discount",
@@ -205,6 +227,23 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
     status: "received",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
+    });
+
+    transaction.set(trackingRef, {
+      orderNumber: number,
+      status: "received",
+      orderType: draft.orderType,
+      productType: isPurchase ? draft.productType : "fullOutfit",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    transaction.set(phoneLookupRef, {
+      orderNumber: number,
+      latestOrderNumber: number,
+      orderNumbers: [...previous],
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
   });
 
   return number;
