@@ -112,10 +112,18 @@ export default function AdminGroupOrderDetailClient(){
           {String(order.orderType)==="شراء" && (
             <section className="adminDetailCard">
               <h2>أسماء أفراد المجموعة</h2>
-              {members.length===0?<p>لا توجد أسماء محفوظة.</p>:(
+              {members.length===0?<p>لا توجد أسماء مكتوبة يدويًا.</p>:(
                 <ol className="groupMembersList">
                   {members.map((member,index)=><li key={index}>{member}</li>)}
                 </ol>
+              )}
+              {typeof order.membersExcelUrl === "string" && order.membersExcelUrl.startsWith("https://") && (
+                <p className="adminGroupExcelFile">
+                  <strong>ملف أسماء المجموعة المرفق:</strong>{" "}
+                  <a href={order.membersExcelUrl} target="_blank" rel="noopener noreferrer">
+                    {value(order.membersExcelName) === "—" ? "فتح ملف Excel" : value(order.membersExcelName)}
+                  </a>
+                </p>
               )}
             </section>
           )}
