@@ -242,7 +242,7 @@ export default function OrderClient() {
           <label>{tr("القماش", "Fabric")}
             <select value={draft.fabric} onChange={(e) => patch("fabric", e.target.value as OrderDraft["fabric"])}>
               <option value="ساتان">{tr("ساتان", "Satin")}</option>
-              <option value="موبرة">{tr("موبرة", "Velvet")}</option>
+              <option value="موبرة">{tr("موبرة", "Plush fabric")}</option>
             </select>
           </label>
           <label>{tr("لون الوشاح", "Shawl colour")}
