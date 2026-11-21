@@ -12,6 +12,7 @@ import {
   loadShopSettings,
 } from "@/lib/public-data";
 import type { DeliveryCity, OrderRules, PublicProduct, ShopSettings } from "@/lib/order-types";
+import { useLanguage } from "@/components/LanguageProvider";
 import { quoteOrder, submitOrder, type OrderDraft, type PrintingOption } from "@/lib/order-service";
 import { uploadGraduationImage } from "@/lib/image-upload";
 
@@ -52,6 +53,8 @@ const initialDraft: OrderDraft = {
 };
 
 export default function OrderClient() {
+  const { isArabic } = useLanguage();
+  const tr = (ar: string, en: string) => isArabic ? ar : en;
   const [draft, setDraft] = useState<OrderDraft>(initialDraft);
   const [products, setProducts] = useState<PublicProduct[]>([]);
   const [cities, setCities] = useState<DeliveryCity[]>(DEFAULT_CITIES);
@@ -148,21 +151,21 @@ export default function OrderClient() {
     return (
       <div className="orderSuccess" role="status">
         <span className="successMark">✓</span>
-        <h2>تم استلام طلبك</h2>
-        <p>احتفظ برقم الطلب لتتبعه لاحقًا.</p>
+        <h2>{tr("تم استلام طلبك", "Your order has been received")}</h2>
+        <p>{tr("احتفظ برقم الطلب لتتبعه لاحقًا.", "Keep your order number to track it later.")}</p>
         <strong dir="ltr">{success}</strong>
-        <a className="primaryButton" href="/track-order">تتبع الطلب</a>
+        <a className="primaryButton" href="/track-order">{tr("تتبع الطلب", "Track order")}</a>
       </div>
     );
   }
 
   return (
     <form className="orderForm" onSubmit={onSubmit}>
-      {loadingData && <p className="formNotice">جاري تحميل المنتجات والأسعار الحالية…</p>}
+      {loadingData && <p className="formNotice">{tr("جاري تحميل المنتجات والأسعار الحالية…", "Loading products and current prices…")}</p>}
       {message && <p className="formError">{message}</p>}
 
       <section className="formSection">
-        <StepHeading number={1}>نوع الطلب</StepHeading>
+        <StepHeading number={1}>{tr("نوع الطلب", "Order type")}</StepHeading>
         <div className="choiceGrid">
           {(["شراء", "كراء"] as const).map((value) => (
             <button type="button" key={value}
@@ -186,30 +189,30 @@ export default function OrderClient() {
       </section>
 
       <section className="formSection">
-        <StepHeading number={2}>المنتج</StepHeading>
+        <StepHeading number={2}>{tr("المنتج", "Product")}</StepHeading>
         <div className="fieldGrid">
-          <label>المنتج
+          <label>{tr("المنتج", "Product")}
             <select value={draft.productType} onChange={(e) => patch("productType", e.target.value as OrderDraft["productType"])}>
-              <option value="fullOutfit">بدلة كاملة</option>
-              <option value="shawlAndCap">وشاح وقبعة</option>
-              <option value="shawlOnly">وشاح فقط</option>
+              <option value="fullOutfit">{tr("بدلة كاملة", "Full outfit")}</option>
+              <option value="shawlAndCap">{tr("وشاح وقبعة", "Shawl and cap")}</option>
+              <option value="shawlOnly">{tr("وشاح فقط", "Shawl only")}</option>
             </select>
           </label>
           {draft.productType !== "shawlOnly" && (
-            <label>الجنس
+            <label>{tr("الجنس", "Gender")}
               <select value={draft.gender} onChange={(e) => patch("gender", e.target.value as OrderDraft["gender"])}>
-                <option value="ذكر">ذكر</option>
-                <option value="أنثى">أنثى</option>
+                <option value="ذكر">{tr("ذكر", "Male")}</option>
+                <option value="أنثى">{tr("أنثى", "Female")}</option>
               </select>
             </label>
           )}
-          <label>القماش
+          <label>{tr("القماش", "Fabric")}
             <select value={draft.fabric} onChange={(e) => patch("fabric", e.target.value as OrderDraft["fabric"])}>
-              <option value="ساتان">ساتان</option>
-              <option value="موبرة">موبرة</option>
+              <option value="ساتان">{tr("ساتان", "Satin")}</option>
+              <option value="موبرة">{tr("موبرة", "Velvet")}</option>
             </select>
           </label>
-          <label>لون الوشاح
+          <label>{tr("لون الوشاح", "Shawl colour")}
             <input value={draft.shawlColor} onChange={(e) => patch("shawlColor", e.target.value)} maxLength={80} required />
           </label>
         </div>
@@ -218,8 +221,8 @@ export default function OrderClient() {
 
       {draft.orderType === "شراء" && (
         <section className="formSection">
-          <StepHeading number={3}>الطباعة والتخصيص</StepHeading>
-          <p className="sectionHint">الطباعة اختيارية. طباعة الوشاح تضيف 40 درهم، وطباعة القبعة تضيف 40 درهم.</p>
+          <StepHeading number={3}>{tr("الطباعة والتخصيص", "Printing and customization")}</StepHeading>
+          <p className="sectionHint">{tr("الطباعة اختيارية. طباعة الوشاح تضيف 40 {tr("درهم", "MAD")}، وطباعة القبعة تضيف 40 درهم.", "Printing is optional. Shawl printing adds 40 MAD, and cap printing adds 40 MAD.")}</p>
           <div className="printingGrid">
             {([
               ["rightShawl", "الجهة اليمنى من الوشاح"],
@@ -267,27 +270,27 @@ export default function OrderClient() {
                     <div className="printingDetails">
                       <label>نوع الطباعة
                         <select value={option.type} onChange={(e) => patchPrinting(key, { type: e.target.value as PrintingOption["type"] })}>
-                          <option value="text">نص</option>
-                          <option value="logo">شعار</option>
-                          <option value="both">نص + شعار</option>
+                          <option value="text">{tr("نص", "Text")}</option>
+                          <option value="logo">{tr("شعار", "Logo")}</option>
+                          <option value="both">{tr("نص + شعار", "Text + logo")}</option>
                         </select>
                       </label>
                       {(option.type === "text" || option.type === "both") && (
-                        <label>النص المطلوب
+                        <label>{tr("النص المطلوب", "Text to print")}
                           <input maxLength={500} value={option.text}
                             onChange={(e) => patchPrinting(key, { text: e.target.value })} />
                         </label>
                       )}
                       {(option.type === "logo" || option.type === "both") && (
                         <div className="uploadField">
-                          <span className="uploadLabel">رفع الشعار</span>
+                          <span className="uploadLabel">{tr("رفع الشعار", "Upload logo")}</span>
                           <label className={uploading ? "customUpload isDisabled" : "customUpload"}>
                             <input type="file" accept="image/*" disabled={uploading}
                               onChange={(e) => uploadLogo(key, e.target.files?.[0])} />
                             <span className="uploadIcon" aria-hidden="true">↑</span>
                             <span>{uploading ? "جاري الرفع…" : option.logoPath ? "استبدال الشعار" : "اختر صورة الشعار"}</span>
                           </label>
-                          {option.logoPath && <span className="uploadDone">تم رفع الشعار ✓</span>}
+                          {option.logoPath && <span className="uploadDone">{tr("تم رفع الشعار ✓", "Logo uploaded ✓")}</span>}
                         </div>
                       )}
                     </div>
@@ -298,8 +301,8 @@ export default function OrderClient() {
           </div>
 
           <div className="referenceBox">
-            <h3>صور مرجعية</h3>
-            <p>يمكنك رفع حتى 4 صور للتصميم المطلوب.</p>
+            <h3>{tr("صور مرجعية", "Reference images")}</h3>
+            <p>{tr("يمكنك رفع حتى 4 صور للتصميم المطلوب.", "You can upload up to 4 reference images for your design.")}</p>
             <label className={(uploading || draft.referenceImages.length >= 4) ? "customUpload referenceUpload isDisabled" : "customUpload referenceUpload"}>
               <input type="file" accept="image/*" disabled={uploading || draft.referenceImages.length >= 4}
                 onChange={(e) => addReference(e.target.files?.[0])} />
@@ -323,12 +326,12 @@ export default function OrderClient() {
 
 
       <section className="formSection">
-        <StepHeading number={draft.orderType === "شراء" ? 4 : 3}>بياناتك</StepHeading>
+        <StepHeading number={draft.orderType === "شراء" ? 4 : 3}>{tr("بياناتك", "Your details")}</StepHeading>
         <div className="fieldGrid">
-          <label>الاسم الكامل
+          <label>{tr("الاسم الكامل", "Full name")}
             <input value={draft.fullName} onChange={(e) => patch("fullName", e.target.value)} maxLength={120} required />
           </label>
-          <label>رقم الهاتف
+          <label>{tr("رقم الهاتف", "Phone number")}
             <input value={draft.phoneNumber} onChange={(e) => patch("phoneNumber", e.target.value)}
               inputMode="tel" placeholder="06XXXXXXXX" maxLength={10} required dir="ltr" />
           </label>
@@ -336,28 +339,28 @@ export default function OrderClient() {
       </section>
 
       <section className="formSection">
-        <StepHeading number={draft.orderType === "شراء" ? 5 : 4}>الاستلام والتوصيل</StepHeading>
+        <StepHeading number={draft.orderType === "شراء" ? 5 : 4}>{tr("الاستلام والتوصيل", "Collection and delivery")}</StepHeading>
         <div className="choiceGrid">
           <button type="button" className={draft.deliveryMethod === "homeDelivery" ? "choice active" : "choice"}
-            onClick={() => patch("deliveryMethod", "homeDelivery")}>توصيل للمنزل</button>
+            onClick={() => patch("deliveryMethod", "homeDelivery")}>{tr("توصيل للمنزل", "Home delivery")}</button>
           <button type="button" className={draft.deliveryMethod === "pickup" ? "choice active" : "choice"}
-            onClick={() => { patch("deliveryMethod", "pickup"); patch("city", "Fes"); }}>الاستلام</button>
+            onClick={() => { patch("deliveryMethod", "pickup"); patch("city", "Fes"); }}>{tr("الاستلام", "Pickup")}</button>
         </div>
         <div className="fieldGrid">
-          <label>المدينة
+          <label>{tr("المدينة", "City")}
             <select value={draft.city} disabled={draft.deliveryMethod === "pickup"} onChange={(e) => patch("city", e.target.value)}>
               {cities.filter((c) => c.active).map((city) => <option key={city.name} value={city.name}>{city.name}</option>)}
             </select>
           </label>
           {draft.deliveryMethod === "homeDelivery" && (
-            <label>العنوان
+            <label>{tr("العنوان", "Address")}
               <input value={draft.address} onChange={(e) => patch("address", e.target.value)} maxLength={500} required />
             </label>
           )}
-          <label>التاريخ
+          <label>{tr("التاريخ", "Date")}
             <input type="date" min={minDate} value={draft.deliveryDate} onChange={(e) => patch("deliveryDate", e.target.value)} required />
           </label>
-          <label>الوقت
+          <label>{tr("الوقت", "Time")}
             <select value={draft.deliveryTime} onChange={(e) => patch("deliveryTime", e.target.value)}>
               {TIMES.map((time) => <option key={time} value={time}>{time}</option>)}
             </select>
@@ -365,7 +368,7 @@ export default function OrderClient() {
         </div>
         {draft.orderType === "كراء" && (
           <div className="formNotice" role="status">
-            <strong>موعد إرجاع الكراء</strong>
+            <strong>{tr("موعد إرجاع الكراء", "Rental return time")}</strong>
             {draft.deliveryDate ? (
               <p>
                 {DateTime.fromISO(`${draft.deliveryDate}T${draft.deliveryTime}`, { zone: "Africa/Casablanca" })
@@ -373,16 +376,16 @@ export default function OrderClient() {
                 {DateTime.fromISO(`${draft.deliveryDate}T${draft.deliveryTime}`, { zone: "Africa/Casablanca" })
                   .plus({ hours: 24 }).toFormat("HH:mm")}
               </p>
-            ) : <p>اختر تاريخ ووقت الاستلام لعرض موعد الإرجاع.</p>}
-            <p>مدة الكراء 24 ساعة كاملة من وقت الاستلام. سيتم حفظ الموعد الظاهر أعلاه في طلبك.</p>
+            ) : <p>{tr("اختر تاريخ ووقت الاستلام لعرض موعد الإرجاع.", "Choose a collection date and time to see the return time.")}</p>}
+            <p>{tr("مدة الكراء 24 ساعة كاملة من وقت الاستلام. سيتم حفظ الموعد الظاهر أعلاه في طلبك.", "The rental period is 24 hours from collection. The return time shown above will be saved with your order.")}</p>
           </div>
         )}
       </section>
 
       <section className="formSection">
-        <StepHeading number={draft.orderType === "شراء" ? 6 : 5}>الدفع</StepHeading>
+        <StepHeading number={draft.orderType === "شراء" ? 6 : 5}>{tr("الدفع", "Payment")}</StepHeading>
         <div className="fieldGrid">
-          <label>طريقة الدفع
+          <label>{tr("طريقة الدفع", "Payment method")}
             <select value={draft.paymentMethod} onChange={(e) => {
               const value = e.target.value as OrderDraft["paymentMethod"];
               patch("paymentMethod", value);
@@ -391,25 +394,25 @@ export default function OrderClient() {
                 patch("paymentProvider", "");
               }
             }}>
-              {shop.bankTransferEnabled && <option value="bank_transfer">تحويل بنكي</option>}
-              {shop.cashTransferAgencyEnabled && <option value="cash_transfer_agency">تحويل عبر وكالة</option>}
-              {shop.cashAtStoreEnabled && draft.deliveryMethod === "pickup" && <option value="cash_at_store">نقدًا عند الاستلام</option>}
+              {shop.bankTransferEnabled && <option value="bank_transfer">{tr("تحويل بنكي", "Bank transfer")}</option>}
+              {shop.cashTransferAgencyEnabled && <option value="cash_transfer_agency">{tr("تحويل عبر وكالة", "Cash transfer agency")}</option>}
+              {shop.cashAtStoreEnabled && draft.deliveryMethod === "pickup" && <option value="cash_at_store">{tr("نقدًا عند الاستلام", "Cash on pickup")}</option>}
             </select>
           </label>
           {draft.paymentMethod !== "cash_at_store" && (
-            <label>المبلغ
+            <label>{tr("المبلغ", "Amount")}
               <select value={draft.bankTransferPlan} onChange={(e) => patch("bankTransferPlan", e.target.value as OrderDraft["bankTransferPlan"])}>
                 {shop.depositPaymentEnabled && <option value="deposit">تسبيق {shop.depositPercentage}%</option>}
-                {shop.fullPaymentEnabled && <option value="full">الدفع الكامل</option>}
+                {shop.fullPaymentEnabled && <option value="full">{tr("الدفع الكامل", "Full payment")}</option>}
               </select>
             </label>
           )}
           {draft.paymentMethod === "cash_transfer_agency" && (
             <label>الوكالة
               <select value={draft.paymentProvider} onChange={(e) => patch("paymentProvider", e.target.value as OrderDraft["paymentProvider"])} required>
-                <option value="">اختر الوكالة</option><option value="cash_plus">Cash Plus</option>
+                <option value="">{tr("اختر الوكالة", "Choose an agency")}</option><option value="cash_plus">Cash Plus</option>
                 <option value="wafacash">Wafacash</option><option value="western_union">Western Union</option>
-                <option value="other">أخرى</option>
+                <option value="other">{tr("أخرى", "Other")}</option>
               </select>
             </label>
           )}
@@ -417,25 +420,25 @@ export default function OrderClient() {
       </section>
 
       <section className="formSection">
-        <StepHeading number={draft.orderType === "شراء" ? 7 : 6}>ملاحظات</StepHeading>
-        <label>ملاحظات الطلب
+        <StepHeading number={draft.orderType === "شراء" ? 7 : 6}>{tr("ملاحظات", "Notes")}</StepHeading>
+        <label>{tr("ملاحظات الطلب", "Order notes")}
           <textarea value={draft.notes} onChange={(e) => patch("notes", e.target.value)} maxLength={1000} rows={3} />
         </label>
-        <label>ملاحظات التوصيل
+        <label>{tr("ملاحظات التوصيل", "Delivery notes")}
           <textarea value={draft.deliveryNotes} onChange={(e) => patch("deliveryNotes", e.target.value)} maxLength={1000} rows={3} />
         </label>
       </section>
 
       <aside className="orderSummary">
-        <div><span>المنتج</span><strong>{quote?.productPrice ?? "—"} درهم</strong></div>
-        <div><span>التوصيل</span><strong>{quote?.deliveryFee ?? "—"} درهم</strong></div>
-        <div className="summaryTotal"><span>المجموع</span><strong>{quote?.total ?? "—"} درهم</strong></div>
+        <div><span>{tr("المنتج", "Product")}</span><strong>{quote?.productPrice ?? "—"} درهم</strong></div>
+        <div><span>{tr("التوصيل", "Delivery")}</span><strong>{quote?.deliveryFee ?? "—"} درهم</strong></div>
+        <div className="summaryTotal"><span>{tr("المجموع", "Total")}</span><strong>{quote?.total ?? "—"} درهم</strong></div>
       </aside>
 
       <button className="submitOrder" type="submit" disabled={submitting || loadingData || uploading || !quote}>
         {submitting ? "جاري إرسال الطلب…" : "تأكيد وإرسال الطلب"}
       </button>
-      <p className="privacyNote">لا تحتاج إلى حساب. تُستخدم بياناتك لمعالجة الطلب والتواصل معك فقط.</p>
+      <p className="privacyNote">{tr("لا تحتاج إلى حساب. تُستخدم بياناتك لمعالجة الطلب والتواصل معك فقط.", "No account is needed. Your details are used only to process your order and contact you.")}</p>
     </form>
   );
 }
