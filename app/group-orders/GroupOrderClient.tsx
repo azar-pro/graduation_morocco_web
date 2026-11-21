@@ -1,13 +1,14 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { DateTime } from "luxon";
 import { submitGroupOrder, type GroupOrderDraft, type GroupPrintingOption } from "@/lib/group-orders";
 import { uploadGraduationImage } from "@/lib/image-upload";
 import { uploadGroupExcel } from "@/lib/group-file-upload";
+import { DEFAULT_CITIES, DEFAULT_RULES, DEFAULT_SHOP, loadDeliveryCities, loadOrderRules, loadProducts, loadShopSettings } from "@/lib/public-data";
+import type { DeliveryCity, OrderRules, PublicProduct, ShopSettings } from "@/lib/order-types";
 
 const TIMES = Array.from({ length: 13 }, (_, i) => `${String(i + 9).padStart(2, "0")}:00`);
-const CITIES = ["Fes","Meknes","Sefrou","Ifrane","El Hajeb","Taza","Rabat","Casablanca","Marrakech","Tangier","Agadir","Oujda","Tetouan","Nador"];
 
 const initial: GroupOrderDraft = {
   orderType: "شراء",
@@ -39,14 +40,51 @@ export default function GroupOrderClient() {
   const [uploading, setUploading] = useState(false);
   const [excelFile, setExcelFile] = useState<{ name: string; url: string } | null>(null);
   const [expandedPrinting, setExpandedPrinting] = useState<"rightShawl" | "leftShawl" | "backShawl" | "cap" | null>(null);
+  const [products, setProducts] = useState<PublicProduct[]>([]);
+  const [cities, setCities] = useState<DeliveryCity[]>(DEFAULT_CITIES);
+  const [shop, setShop] = useState<ShopSettings>(DEFAULT_SHOP);
+  const [rules, setRules] = useState<OrderRules>(DEFAULT_RULES);
+  const [loadingPricing, setLoadingPricing] = useState(true);
 
-  const minDate = useMemo(
-    () => DateTime.now().setZone("Africa/Casablanca").plus({ days: 2 }).toFormat("yyyy-MM-dd"),
-    [],
-  );
+  useEffect(() => {
+    Promise.all([loadProducts(), loadDeliveryCities(), loadShopSettings(), loadOrderRules()])
+      .then(([nextProducts, nextCities, nextShop, nextRules]) => {
+        setProducts(nextProducts);
+        setCities(nextCities);
+        setShop(nextShop);
+        setRules(nextRules);
+      })
+      .catch(() => setMessage("تعذر تحميل الأسعار وإعدادات الطلب الحالية. حاول تحديث الصفحة."))
+      .finally(() => setLoadingPricing(false));
+  }, []);
+
+  const minDate = useMemo(() => {
+    const now = DateTime.now().setZone("Africa/Casablanca");
+    const minimum = draft.orderType === "شراء"
+      ? now.plus({ days: rules.purchasePreparationDays })
+      : now.plus({ hours: rules.rentalAdvanceHours });
+    return minimum.plus({ days: 1 }).toFormat("yyyy-MM-dd");
+  }, [draft.orderType, rules]);
+
+  const priceEstimate = useMemo(() => {
+    const selectedType = draft.orderType === "كراء" ? "fullOutfit" : draft.productType;
+    const product = products.find((item) => item.productType === selectedType);
+    if (!product) return null;
+    const baseUnit = draft.orderType === "شراء"
+      ? (draft.fabric === "ساتان" ? product.purchaseSatin : product.purchaseMoubara)
+      : (draft.fabric === "ساتان" ? product.rentalSatin : product.rentalMoubara);
+    const shawlPrint = draft.orderType === "شراء" && (draft.rightShawl.enabled || draft.leftShawl.enabled || draft.backShawl.enabled);
+    const capPrint = draft.orderType === "شراء" && draft.productType !== "shawlOnly" && draft.cap.enabled;
+    const unit = baseUnit + (shawlPrint ? 40 : 0) + (capPrint ? 40 : 0);
+    const city = cities.find((item) => item.name === draft.city && item.active);
+    if (draft.deliveryMethod === "homeDelivery" && !city) return null;
+    const delivery = draft.deliveryMethod === "pickup" ? 0 : (city?.price ?? 0);
+    const productsTotal = unit * draft.quantity;
+    return { unit, productsTotal, delivery, total: productsTotal + delivery };
+  }, [products, cities, draft]);
 
   function changeQuantity(value: number) {
-    const quantity = Math.max(1, Math.trunc(value || 1));
+    const quantity = Math.max(5, Math.trunc(value || 5));
     setDraft((d) => ({
       ...d,
       quantity,
@@ -151,7 +189,8 @@ export default function GroupOrderClient() {
             عدد الأفراد
             <input
               type="number"
-              min={1}
+              min={5}
+              max={100}
               value={draft.quantity}
               onChange={(e) => changeQuantity(Number(e.target.value))}
               required
@@ -392,7 +431,7 @@ export default function GroupOrderClient() {
               disabled={draft.deliveryMethod === "pickup"}
               onChange={(e) => setDraft((d) => ({ ...d, city: e.target.value }))}
             >
-              {CITIES.map((city) => <option key={city} value={city}>{city}</option>)}
+              {cities.filter((city) => city.active).map((city) => <option key={city.id} value={city.name}>{city.name}</option>)}
             </select>
           </label>
 
@@ -457,7 +496,19 @@ export default function GroupOrderClient() {
         />
       </section>
 
-      <button className="submitOrder" type="submit" disabled={submitting || uploading}>
+      {priceEstimate && (
+        <aside className="orderSummary" aria-live="polite">
+          <div><span>سعر الفرد الواحد</span><strong>{priceEstimate.unit} درهم</strong></div>
+          <div><span>مجموع المنتجات ({draft.quantity} أفراد)</span><strong>{priceEstimate.productsTotal} درهم</strong></div>
+          <div><span>التوصيل</span><strong>{priceEstimate.delivery} درهم</strong></div>
+          <div className="summaryTotal"><span>التقدير الإجمالي للمجموعة</span><strong>{priceEstimate.total} درهم</strong></div>
+          <p className="sectionHint">تقدير وفق الأسعار الحالية للمنتجات ورسوم التوصيل، دون خصم كميات. يُؤكد السعر النهائي بعد مراجعة الطلب.</p>
+        </aside>
+      )}
+      {loadingPricing && <p className="formNotice">جاري تحميل الأسعار الحالية…</p>}
+      {!loadingPricing && !priceEstimate && <p className="formError">تعذر احتساب السعر حاليًا. تحقق من اختيار المنتج والمدينة أو أعد تحميل الصفحة.</p>}
+
+      <button className="submitOrder" type="submit" disabled={submitting || uploading || loadingPricing || !priceEstimate}>
         {submitting ? "جاري إرسال الطلب…" : "إرسال الطلب الجماعي"}
       </button>
       <p className="privacyNote">لا يحتاج أي فرد من المجموعة إلى إنشاء حساب.</p>
