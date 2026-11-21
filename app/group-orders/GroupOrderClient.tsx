@@ -11,6 +11,38 @@ import { useLanguage } from "@/components/LanguageProvider";
 
 const TIMES = Array.from({ length: 13 }, (_, i) => `${String(i + 9).padStart(2, "0")}:00`);
 
+const ERROR_EN: Record<string, string> = {
+  "تعذر تحميل الأسعار وإعدادات الطلب الحالية. حاول تحديث الصفحة.": "Could not load current prices and order settings. Please refresh the page.",
+  "تعذر رفع الصورة.": "Could not upload the image.",
+  "تعذر إرسال الطلب الجماعي.": "Could not submit the group order.",
+  "تعذر رفع ملف Excel.": "Could not upload the Excel file.",
+  "تعذر رفع الشعار.": "Could not upload the logo.",
+  "استقبال الطلبات متوقف مؤقتًا.": "Order submissions are temporarily paused.",
+  "طلبات الشراء متوقفة مؤقتًا.": "Purchase orders are temporarily paused.",
+  "طلبات الكراء متوقفة مؤقتًا.": "Rental orders are temporarily paused.",
+  "الحد الأدنى للطلب الجماعي هو 5 أشخاص.": "The minimum group order is 5 people.",
+  "للطلبات التي تتجاوز 100 شخص، يرجى التواصل معنا عبر WhatsApp.": "For orders above 100 people, please contact us on WhatsApp.",
+  "خيار الوشاح والقبعة فقط متاح للشراء وليس للكراء.": "The shawl-and-cap-only option is available for purchase, not rental.",
+  "أدخل اسم المسؤول عن الطلب.": "Enter the group coordinator’s name.",
+  "أدخل رقم هاتف مغربي صحيح.": "Enter a valid Moroccan phone number.",
+  "اختر المدينة.": "Choose a city.",
+  "اختر نوع القماش.": "Choose a fabric.",
+  "أدخل لون الوشاح بشكل صحيح.": "Enter a valid shawl colour.",
+  "أدخل عنوان التوصيل.": "Enter the delivery address.",
+  "اختر موعد الطلب.": "Choose an order date.",
+  "موعد الطلب غير صالح.": "The selected order date or time is invalid.",
+  "ملف Excel المرفق غير صالح. أعد رفع الملف.": "The attached Excel file is invalid. Please upload it again.",
+  "أدخل اسمًا لكل فرد أو أرفق ملف Excel يحتوي على أسماء المجموعة.": "Enter a name for each member or attach an Excel file containing the group names.",
+  "أحد أسماء الأفراد أطول من المسموح.": "One of the member names is too long.",
+  "المنتج المحدد غير متاح حاليًا.": "The selected product is currently unavailable.",
+  "مدينة التوصيل المحددة غير متاحة حاليًا.": "Delivery is not available in the selected city.",
+  "اختر نوع الطباعة لكل موضع تم تفعيله.": "Choose a printing type for each enabled position.",
+  "أدخل نص الطباعة المطلوب بشكل صحيح.": "Enter valid text for printing.",
+  "ارفع شعارًا صالحًا للطباعة.": "Upload a valid logo for printing.",
+  "يمكن رفع حتى 8 صور مرجعية صالحة.": "You can upload up to 8 valid reference images."
+};
+
+
 const initial: GroupOrderDraft = {
   orderType: "شراء",
   quantity: 5,
@@ -57,7 +89,7 @@ export default function GroupOrderClient() {
         setShop(nextShop);
         setRules(nextRules);
       })
-      .catch(() => setMessage("تعذر تحميل الأسعار وإعدادات الطلب الحالية. حاول تحديث الصفحة."))
+      .catch(() => setMessage(tr("تعذر تحميل الأسعار وإعدادات الطلب الحالية. حاول تحديث الصفحة.", "Could not load current prices and order settings. Please refresh the page.")))
       .finally(() => setLoadingPricing(false));
   }, []);
 
@@ -110,7 +142,7 @@ export default function GroupOrderClient() {
       const url = await uploadGraduationImage(file);
       setDraft((d) => ({ ...d, referenceImages: [...d.referenceImages, url].slice(0, 8) }));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "تعذر رفع الصورة.");
+      setMessage(error instanceof Error ? (isArabic ? error.message : ERROR_EN[error.message] ?? error.message) : tr("تعذر رفع الصورة.", "Could not upload the image."));
     } finally {
       setUploading(false);
     }
@@ -124,7 +156,7 @@ export default function GroupOrderClient() {
       const number = await submitGroupOrder({ ...draft, membersExcelUrl: excelFile?.url ?? null, membersExcelName: excelFile?.name ?? null });
       setSuccess(number);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "تعذر إرسال الطلب الجماعي.");
+      setMessage(error instanceof Error ? (isArabic ? error.message : ERROR_EN[error.message] ?? error.message) : tr("تعذر إرسال الطلب الجماعي.", "Could not submit the group order."));
     } finally {
       setSubmitting(false);
     }
@@ -284,7 +316,7 @@ export default function GroupOrderClient() {
                         const url = await uploadGroupExcel(file);
                         setExcelFile({ name: file.name, url });
                       } catch (error) {
-                        setMessage(error instanceof Error ? error.message : "تعذر رفع ملف Excel.");
+                        setMessage(error instanceof Error ? (isArabic ? error.message : ERROR_EN[error.message] ?? error.message) : tr("تعذر رفع ملف Excel.", "Could not upload the Excel file."));
                       } finally {
                         setUploading(false);
                         input.value = "";
@@ -373,7 +405,7 @@ export default function GroupOrderClient() {
                                 if (!file) return;
                                 setUploading(true);
                                 try { const url = await uploadGraduationImage(file); patchPrinting(key, { logoPath: url }); }
-                                catch (error) { setMessage(error instanceof Error ? error.message : "تعذر رفع الشعار."); }
+                                catch (error) { setMessage(error instanceof Error ? (isArabic ? error.message : ERROR_EN[error.message] ?? error.message) : tr("تعذر رفع الشعار.", "Could not upload the logo.")); }
                                 finally { setUploading(false); }
                               })(); }} />
                             <span className="uploadIcon">↑</span><span>{option.logoPath ? tr("استبدال الشعار", "Replace logo") : tr("اختر صورة الشعار", "Choose logo image")}</span>
