@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import TrackingClient from "./TrackingClient";
 import SiteHeader from "@/components/SiteHeader";
+import TrackOrderPageClient from "./TrackOrderPageClient";
 
 export const metadata: Metadata = {
   title: "تتبع الطلب",
@@ -8,20 +9,4 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function TrackOrderPage() {
-  return (
-    <div className="orderRoute" dir="rtl">
-      <SiteHeader />
-      <main className="utilityPage">
-      <section className="utilityCard">
-        <p className="eyebrow">تتبع الطلب</p>
-        <h1>اعرف حالة طلبك</h1>
-        <p>
-          أدخل رقم الطلب أو رقم الهاتف المغربي المستخدم عند الطلب. لا تحتاج إلى إنشاء حساب.
-        </p>
-        <TrackingClient />
-      </section>
-      </main>
-    </div>
-  );
-}
+export default function TrackOrderPage() { return <TrackOrderPageClient />; }
