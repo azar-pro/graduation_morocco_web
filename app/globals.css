@@ -1831,3 +1831,18 @@
 
 .groupReferenceItem a{display:flex;align-items:center;gap:10px;text-decoration:none}
 .groupReferenceItem img{width:54px;height:54px;object-fit:cover;border-radius:10px;border:1px solid rgba(201,164,92,.28)}
+
+
+/* Shared header navigation: keep every destination accessible on narrow screens */
+@media(max-width:680px){
+  .orderHeaderNav{
+    min-width:0;
+    max-width:calc(100vw - 158px);
+    overflow-x:auto;
+    white-space:nowrap;
+    scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;
+  }
+  .orderHeaderNav::-webkit-scrollbar{display:none}
+  .orderHeaderNav a{flex:0 0 auto}
+}
