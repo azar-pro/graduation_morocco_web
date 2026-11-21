@@ -10,6 +10,7 @@ import {
   query,
   updateDoc,
   setDoc,
+  writeBatch,
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -50,7 +51,15 @@ export async function updateOrderStatus(orderNumber: string, status: string) {
 }
 
 export async function updateGroupOrderStatus(groupOrderNumber: string, status: string) {
-  await updateDoc(doc(db, "group_orders", groupOrderNumber), { status, updatedAt: serverTimestamp() });
+  const groupRef = doc(db, "group_orders", groupOrderNumber);
+  const trackingRef = doc(db, "order_tracking", groupOrderNumber);
+  const trackingSnap = await getDoc(trackingRef);
+  const batch = writeBatch(db);
+  batch.update(groupRef, { status, updatedAt: serverTimestamp() });
+  if (trackingSnap.exists()) {
+    batch.update(trackingRef, { status, updatedAt: serverTimestamp() });
+  }
+  await batch.commit();
 }
 
 
