@@ -48,7 +48,7 @@ export default function TrackingClient() {
           type="search"
           inputMode="search"
           autoComplete="off"
-          placeholder=t("GM-2026-000018 أو GRP-2026-ABCDEFGH أو 06XXXXXXXX", "GM-2026-000018, GRP-2026-ABCDEFGH or 06XXXXXXXX")
+          placeholder={t("GM-2026-000018 أو GRP-2026-ABCDEFGH أو 06XXXXXXXX", "GM-2026-000018, GRP-2026-ABCDEFGH or 06XXXXXXXX")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           maxLength={24}
@@ -69,7 +69,7 @@ export default function TrackingClient() {
               <article className="trackingResult" key={order.orderNumber}>
                 <span className="trackingNumber">{order.orderNumber}</span>
                 <strong>{(isArabic ? (labels[order.status] ?? t("حالة الطلب غير معروفة", "حالة الطلب غير معروفة")) : ({ received: "Order received", review: "Under review", working: "In progress", printing: "Printing", ready: "Ready", delivery: "Out for delivery", completed: "Delivered", cancelled: "Cancelled" }[order.status] ?? "Unknown order status"))}</strong>
-                <small>{order.orderNumber.startsWith("GRP-") ? `${t("طلب جماعي", "Group order")} · ${order.quantity ?? "—"} ${t("أفراد", "people")}` : t("طلب فردي", "Individual order")} · {order.orderType} · {order.productType}</small>
+                <small>{order.orderNumber.startsWith("GRP-") ? `${t("طلب جماعي", "Group order")} · ${order.quantity ?? "—"} ${t("أفراد", "people")}` : t("طلب فردي", "Individual order")} · {t(order.orderType, order.orderType === "شراء" ? "Purchase" : "Rental")} · {t(order.productType, order.productType === "fullOutfit" ? "Full outfit" : order.productType === "shawlAndCap" ? "Shawl and cap" : "Shawl only")}</small>
               </article>
             ))}
           </div>
