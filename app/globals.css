@@ -1846,3 +1846,9 @@
   .orderHeaderNav::-webkit-scrollbar{display:none}
   .orderHeaderNav a{flex:0 0 auto}
 }
+
+/* Excel member-list attachment */
+.groupExcelAttached{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px;border:1px solid rgba(201,164,92,.35);border-radius:14px;background:#fbfaf7;color:#29405a}
+.groupExcelAttached strong{overflow-wrap:anywhere}
+.adminGroupExcelFile{margin:14px 0 0;padding:12px 14px;border-radius:12px;background:#f8f6f1;line-height:1.9}
+.adminGroupExcelFile a{color:#9d7734;font-weight:800;text-decoration:underline;text-underline-offset:3px}
