@@ -74,6 +74,8 @@ export default function AdminGroupOrderDetailClient(){
               <dl>
                 <div><dt>النوع</dt><dd>{value(order.orderType)}</dd></div>
                 <div><dt>عدد الأفراد</dt><dd>{Number(order.quantity??0)}</dd></div>
+                <div><dt>نوع القماش</dt><dd>{value(order.fabric)}</dd></div>
+                <div><dt>لون الوشاح</dt><dd>{value(order.shawlColor)}</dd></div>
                 <div><dt>الحالة</dt><dd>
                   <select value={String(order.status??"received")} disabled={saving}
                     onChange={async e=>{
