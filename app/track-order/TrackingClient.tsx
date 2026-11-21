@@ -45,7 +45,7 @@ export default function TrackingClient() {
           type="search"
           inputMode="search"
           autoComplete="off"
-          placeholder="GM-2026-000018 أو 06XXXXXXXX"
+          placeholder="GM-2026-000018 أو GRP-2026-ABCDEFGH أو 06XXXXXXXX"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           maxLength={24}
@@ -66,7 +66,7 @@ export default function TrackingClient() {
               <article className="trackingResult" key={order.orderNumber}>
                 <span className="trackingNumber">{order.orderNumber}</span>
                 <strong>{labels[order.status] ?? "حالة الطلب غير معروفة"}</strong>
-                <small>{order.orderType} · {order.productType}</small>
+                <small>{order.orderNumber.startsWith("GRP-") ? "طلب جماعي" : "طلب فردي"} · {order.orderType} · {order.productType}</small>
               </article>
             ))}
           </div>
