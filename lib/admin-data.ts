@@ -72,6 +72,8 @@ export async function confirmRentalDepositReceived(orderNumber: string) {
     rentalDepositCollectedAmount: deposit,
     rentalDepositStatus: "collected",
     rentalDepositCollectedAt: serverTimestamp(),
+    rentalDeliveryFeeCollectedAmount: Math.max(0, Number(order.deliveryFeeApplied ?? order.deliveryFee ?? 0) || 0),
+    rentalAmountCollectedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 }
@@ -100,6 +102,10 @@ export async function settleRentalReturn(args: { orderNumber: string; damageDedu
     rentalRefundAmount: refund,
     rentalAdditionalDamageDue: additionalDue,
     rentalSettlementStatus: "settled",
+    paymentStatus: "paid",
+    amountPaid: Math.max(0, Number(order.totalPrice ?? 0) || 0),
+    remainingAmount: 0,
+    paymentUpdatedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
   return { deposit, rentalFee, damage, refund, additionalDue };
