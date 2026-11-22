@@ -22,6 +22,21 @@ const labels: Record<string,string> = {
 
 function value(x: unknown){ const s=String(x??"").trim(); return s||"—"; }
 
+function formatDateTime(input: unknown){
+  if (!input) return "—";
+  let date: Date | null = null;
+  if (input instanceof Date) date = input;
+  else if (typeof input === "object" && input !== null && "toDate" in input && typeof input.toDate === "function") {
+    date = input.toDate();
+  } else if (typeof input === "string" || typeof input === "number") {
+    const parsed = new Date(input);
+    if (Number.isFinite(parsed.getTime())) date = parsed;
+  }
+  return date && Number.isFinite(date.getTime())
+    ? date.toLocaleString("ar-MA", { timeZone: "Africa/Casablanca", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
+    : "—";
+}
+
 function AdminGroupOrderDetailContent(){
   const params=useParams<{groupOrderNumber:string}>();
   const router=useRouter();
@@ -102,6 +117,8 @@ function AdminGroupOrderDetailContent(){
               <h2>الموعد</h2>
               <dl>
                 <div><dt>طريقة الاستلام</dt><dd>{value(order.deliveryMethod)}</dd></div>
+                <div><dt>موعد الاستلام</dt><dd>{formatDateTime(order.scheduledAt)}</dd></div>
+                {order.returnAt && <div><dt>موعد إرجاع الكراء</dt><dd>{formatDateTime(order.returnAt)}</dd></div>}
                 <div><dt>ملاحظات</dt><dd>{value(order.notes)}</dd></div>
               </dl>
             </article>
@@ -149,7 +166,7 @@ function AdminGroupOrderDetailContent(){
                 <h2>الصور المرجعية</h2>
                 {Array.isArray(order.referenceImages) && order.referenceImages.length ? (
                   <div className="adminGroupReferenceGrid">
-                    {(order.referenceImages as string[]).map((url,index)=><a key={url} href={url} target="_blank" rel="noopener noreferrer">عرض الصورة {index+1}</a>)}
+                    {(order.referenceImages as string[]).map((url,index)=><a key={url} href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`الصورة المرجعية ${index+1}`} /><span>عرض الصورة {index+1}</span></a>)}
                   </div>
                 ) : <p>لا توجد صور مرجعية مرفقة.</p>}
               </section>
