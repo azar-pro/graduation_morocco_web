@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import AdminGuard from "../AdminGuard";
 import { loadAdminProducts, saveAdminProduct, type AdminProduct } from "@/lib/admin-data";
 
-export default function AdminProductsClient() {
+function AdminProductsContent() {
   const [products,setProducts] = useState<AdminProduct[]>([]);
   const [loading,setLoading] = useState(true);
   const [message,setMessage] = useState("");
@@ -35,8 +35,6 @@ export default function AdminProductsClient() {
   }
 
   return (
-    <AdminGuard>
-      {() => (
         <main className="adminDetailPage">
           <div className="adminDetailTop">
             <a className="adminBackLink" href="/admin">العودة للوحة</a>
@@ -99,7 +97,9 @@ export default function AdminProductsClient() {
             ))}
           </div>
         </main>
-      )}
-    </AdminGuard>
   );
+}
+
+export default function AdminProductsClient() {
+  return <AdminGuard>{() => <AdminProductsContent />}</AdminGuard>;
 }
