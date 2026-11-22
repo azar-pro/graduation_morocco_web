@@ -57,6 +57,8 @@ export type OrderQuote = {
   productPrice: number;
   deliveryFee: number;
   total: number;
+  rentalSecurityDeposit: number;
+  amountDueNow: number;
   deliveryDocumentId: string;
 };
 
@@ -71,6 +73,7 @@ export function quoteOrder(
   products: PublicProduct[],
   cities: DeliveryCity[],
   order: OrderDraft,
+  shop: ShopSettings,
 ): OrderQuote {
   const product = products.find((x) => x.productType === order.productType);
   if (!product) throw new Error("المنتج المحدد غير متاح حاليًا.");
@@ -100,11 +103,19 @@ export function quoteOrder(
     }
   }
 
+  const rentalSecurityDeposit = order.orderType === "كراء"
+    ? Math.max(0, Math.round(order.fabric === "ساتان"
+      ? shop.rentalSecurityDepositSatin
+      : shop.rentalSecurityDepositMoubara))
+    : 0;
+  const total = productPrice + deliveryFee;
   return {
     product,
     productPrice,
     deliveryFee,
-    total: productPrice + deliveryFee,
+    total,
+    rentalSecurityDeposit,
+    amountDueNow: order.orderType === "كراء" ? rentalSecurityDeposit + deliveryFee : total,
     deliveryDocumentId,
   };
 }
@@ -221,7 +232,7 @@ function validateOrder(
     }
   }
 
-  if (order.paymentMethod !== "cash_at_store") {
+  if (order.paymentMethod !== "cash_at_store" && order.orderType !== "كراء") {
     if (order.bankTransferPlan === "deposit" && !shop.depositPaymentEnabled) {
       throw new Error("خيار التسبيق غير متاح حاليًا.");
     }
@@ -244,7 +255,7 @@ export async function submitOrder(args: {
   rules: OrderRules;
 }) {
   const { draft, products, cities, shop, rules } = args;
-  const quote = quoteOrder(products, cities, draft);
+  const quote = quoteOrder(products, cities, draft, shop);
   const normalized = validateOrder(draft, shop, rules, quote);
   const scheduled = normalized.scheduled;
   const isProofPayment = draft.paymentMethod !== "cash_at_store";
@@ -279,7 +290,7 @@ export async function submitOrder(args: {
 
     const deadlineHours = Math.max(1, Math.min(720, shop.paymentDeadlineHours));
     const depositPercentage = Math.max(1, Math.min(100, shop.depositPercentage));
-    const depositAmount = draft.bankTransferPlan === "deposit" && isProofPayment
+    const depositAmount = draft.orderType === "شراء" && draft.bankTransferPlan === "deposit" && isProofPayment
       ? quote.total * depositPercentage / 100
       : null;
 
@@ -295,7 +306,7 @@ export async function submitOrder(args: {
       status: "received",
       paymentStatus: "pending",
       paymentMethod: draft.paymentMethod,
-      bankTransferPlan: isProofPayment ? draft.bankTransferPlan : "",
+      bankTransferPlan: isProofPayment && draft.orderType === "شراء" ? draft.bankTransferPlan : "",
       paymentProvider:
         draft.paymentMethod === "cash_transfer_agency" ? draft.paymentProvider : "",
       paymentDeadline: null,
@@ -343,12 +354,21 @@ export async function submitOrder(args: {
 
     if (draft.orderType === "كراء") {
       orderData.returnAt = Timestamp.fromDate(returnAt.toUTC().toJSDate());
+      orderData.rentalFeeAmount = quote.productPrice;
+      orderData.rentalSecurityDepositAmount = quote.rentalSecurityDeposit;
+      orderData.rentalDepositCollectedAmount = 0;
+      orderData.rentalDepositStatus = "pending";
+      orderData.rentalReturnStatus = "awaiting_return";
+      orderData.rentalDamageDeduction = 0;
+      orderData.rentalRefundAmount = null;
+      orderData.rentalAdditionalDamageDue = 0;
+      orderData.rentalSettlementStatus = "pending";
     }
 
     if (isProofPayment) {
       orderData.paymentDeadlineHoursApplied = deadlineHours;
       orderData.paymentDeadlineTimeZone = TZ;
-      if (draft.bankTransferPlan === "deposit") {
+      if (draft.orderType === "شراء" && draft.bankTransferPlan === "deposit") {
         orderData.depositPercentageApplied = depositPercentage;
         orderData.depositRequiredAmount = depositAmount;
       }
