@@ -274,6 +274,10 @@ function AdminOrderDetailContent() {
                     <input type="number" min="0" step="1" value={damageDeduction} onChange={e=>setDamageDeduction(e.target.value)} disabled={saving}/>
                   </label>
                   <div>
+                    <p className="sectionHint">المبلغ المتوقع إعادته: {money(Math.max(0, Number(order.rentalDepositCollectedAmount ?? order.rentalSecurityDepositAmount ?? 0) - Number(order.rentalFeeAmount ?? 0) - Math.max(0, Number(damageDeduction) || 0)))}</p>
+                    {Number(damageDeduction) + Number(order.rentalFeeAmount ?? 0) > Number(order.rentalDepositCollectedAmount ?? order.rentalSecurityDepositAmount ?? 0) && (
+                      <p className="formError">يوجد مبلغ إضافي مستحق: {money(Number(damageDeduction) + Number(order.rentalFeeAmount ?? 0) - Number(order.rentalDepositCollectedAmount ?? order.rentalSecurityDepositAmount ?? 0))}</p>
+                    )}
                     <p className="sectionHint">سيُخصم سعر الكراء تلقائيًا، ثم خصم الضرر الذي تدخله، ويُحسب المبلغ المتبقي لإعادته للعميل.</p>
                     <button type="button" className="adminAction" disabled={saving || !Number.isFinite(Number(damageDeduction)) || Number(damageDeduction) < 0} onClick={() => void settleRental()}>
                       تأكيد الإرجاع وحساب المبلغ المعاد
