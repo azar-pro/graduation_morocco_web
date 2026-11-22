@@ -59,6 +59,52 @@ export async function loadAdminOrder(orderNumber: string): Promise<AdminOrder | 
   return snap.exists() ? ({ id: snap.id, ...snap.data() } as AdminOrder) : null;
 }
 
+export async function confirmRentalDepositReceived(orderNumber: string) {
+  const ref = doc(db, "orders", orderNumber);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error("الطلب غير موجود.");
+  const order = snap.data();
+  if (order.orderType !== "كراء") throw new Error("هذا الطلب ليس طلب كراء.");
+  if (order.rentalDepositStatus === "collected") throw new Error("تم تسجيل استلام الضمان مسبقًا.");
+  const deposit = Math.max(0, Number(order.rentalSecurityDepositAmount ?? 0) || 0);
+  if (deposit <= 0) throw new Error("قيمة ضمان الكراء غير صالحة.");
+  await updateDoc(ref, {
+    rentalDepositCollectedAmount: deposit,
+    rentalDepositStatus: "collected",
+    rentalDepositCollectedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function settleRentalReturn(args: { orderNumber: string; damageDeduction: number }) {
+  const damage = Number(args.damageDeduction);
+  if (!Number.isFinite(damage) || damage < 0) throw new Error("قيمة خصم الضرر غير صالحة.");
+  const ref = doc(db, "orders", args.orderNumber);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error("الطلب غير موجود.");
+  const order = snap.data();
+  if (order.orderType !== "كراء") throw new Error("هذا الطلب ليس طلب كراء.");
+  if (order.rentalDepositStatus !== "collected") throw new Error("سجّل استلام الضمان أولًا.");
+  if (order.rentalReturnStatus === "returned") throw new Error("تمت تسوية إرجاع هذه البدلة مسبقًا.");
+
+  const deposit = Math.max(0, Number(order.rentalDepositCollectedAmount ?? order.rentalSecurityDepositAmount ?? 0) || 0);
+  const rentalFee = Math.max(0, Number(order.rentalFeeAmount ?? 0) || 0);
+  const deductions = rentalFee + damage;
+  const refund = Math.max(0, deposit - deductions);
+  const additionalDue = Math.max(0, deductions - deposit);
+
+  await updateDoc(ref, {
+    rentalReturnStatus: "returned",
+    rentalReturnedAt: serverTimestamp(),
+    rentalDamageDeduction: damage,
+    rentalRefundAmount: refund,
+    rentalAdditionalDamageDue: additionalDue,
+    rentalSettlementStatus: "settled",
+    updatedAt: serverTimestamp(),
+  });
+  return { deposit, rentalFee, damage, refund, additionalDue };
+}
+
 export async function updateOrderPayment(args: {
   orderNumber: string;
   paymentMethod: string;
