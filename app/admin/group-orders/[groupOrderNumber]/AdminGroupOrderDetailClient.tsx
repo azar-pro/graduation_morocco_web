@@ -46,17 +46,6 @@ function AdminGroupOrderDetailContent(){
   const [message,setMessage]=useState("");
   const [saving,setSaving]=useState(false);
 
-  async function refresh(){
-    setLoading(true);
-    try{
-      setOrder(await loadAdminGroupOrder(groupOrderNumber));
-    }catch{
-      setMessage("تعذر تحميل الطلب الجماعي.");
-    }finally{
-      setLoading(false);
-    }
-  }
-
   useEffect(()=>{
     loadAdminGroupOrder(groupOrderNumber)
       .then(setOrder)
@@ -118,7 +107,7 @@ function AdminGroupOrderDetailContent(){
               <dl>
                 <div><dt>طريقة الاستلام</dt><dd>{value(order.deliveryMethod)}</dd></div>
                 <div><dt>موعد الاستلام</dt><dd>{formatDateTime(order.scheduledAt)}</dd></div>
-                {order.returnAt && <div><dt>موعد إرجاع الكراء</dt><dd>{formatDateTime(order.returnAt)}</dd></div>}
+                {Boolean(order.returnAt) && <div><dt>موعد إرجاع الكراء</dt><dd>{formatDateTime(order.returnAt)}</dd></div>}
                 <div><dt>ملاحظات</dt><dd>{value(order.notes)}</dd></div>
               </dl>
             </article>
