@@ -78,7 +78,7 @@ export default function OrderClient() {
 
   const quote = useMemo(() => {
     try {
-      return products.length ? quoteOrder(products, cities, draft) : null;
+      return products.length ? quoteOrder(products, cities, draft, shop) : null;
     } catch {
       return null;
     }
@@ -396,7 +396,14 @@ export default function OrderClient() {
               {shop.cashAtStoreEnabled && draft.deliveryMethod === "pickup" && <option value="cash_at_store">نقدًا عند الاستلام</option>}
             </select>
           </label>
-          {draft.paymentMethod !== "cash_at_store" && (
+          {draft.orderType === "كراء" && (
+            <div className="formNotice">
+              <strong>ضمان الكراء</strong>
+              <p>مبلغ الضمان المطلوب: {quote?.rentalSecurityDeposit ?? "—"} درهم. يُخصم منه سعر الكراء بعد إعادة البدلة، ثم يُعاد المتبقي بعد احتساب أي ضرر إن وجد.</p>
+              <p>لا يُطبق التسبيق بالنسبة المئوية على الكراء؛ يُدفع مبلغ الضمان كاملًا.</p>
+            </div>
+          )}
+          {draft.paymentMethod !== "cash_at_store" && draft.orderType !== "كراء" && (
             <label>المبلغ
               <select value={draft.bankTransferPlan} onChange={(e) => patch("bankTransferPlan", e.target.value as OrderDraft["bankTransferPlan"])}>
                 {shop.depositPaymentEnabled && <option value="deposit">تسبيق {shop.depositPercentage}%</option>}
@@ -427,9 +434,21 @@ export default function OrderClient() {
       </section>
 
       <aside className="orderSummary">
-        <div><span>المنتج</span><strong>{quote?.productPrice ?? "—"} درهم</strong></div>
-        <div><span>التوصيل</span><strong>{quote?.deliveryFee ?? "—"} درهم</strong></div>
-        <div className="summaryTotal"><span>المجموع</span><strong>{quote?.total ?? "—"} درهم</strong></div>
+        {draft.orderType === "كراء" ? (
+          <>
+            <div><span>سعر الكراء (يُخصم من الضمان)</span><strong>{quote?.productPrice ?? "—"} درهم</strong></div>
+            <div><span>ضمان الكراء المسترد قبل الخصومات</span><strong>{quote?.rentalSecurityDeposit ?? "—"} درهم</strong></div>
+            <div><span>التوصيل</span><strong>{quote?.deliveryFee ?? "—"} درهم</strong></div>
+            <div className="summaryTotal"><span>المبلغ المطلوب الآن</span><strong>{quote?.amountDueNow ?? "—"} درهم</strong></div>
+            <p className="privacyNote">بعد إرجاع البدلة، يُخصم سعر الكراء وأي تعويض عن الضرر من الضمان، ويُعاد المبلغ المتبقي.</p>
+          </>
+        ) : (
+          <>
+            <div><span>المنتج</span><strong>{quote?.productPrice ?? "—"} درهم</strong></div>
+            <div><span>التوصيل</span><strong>{quote?.deliveryFee ?? "—"} درهم</strong></div>
+            <div className="summaryTotal"><span>المجموع</span><strong>{quote?.total ?? "—"} درهم</strong></div>
+          </>
+        )}
       </aside>
 
       <button className="submitOrder" type="submit" disabled={submitting || loadingData || uploading || !quote}>
