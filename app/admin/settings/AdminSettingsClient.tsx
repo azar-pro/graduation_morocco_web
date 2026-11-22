@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import AdminGuard from "../AdminGuard";
 import { loadShopAdminSettings, saveShopAdminSettings } from "@/lib/admin-data";
 
-export default function AdminSettingsClient(){
+function AdminSettingsContent(){
   const [data,setData]=useState<Record<string, unknown>>({});
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
@@ -49,8 +49,6 @@ export default function AdminSettingsClient(){
   }
 
   return (
-    <AdminGuard>
-      {()=>(
         <main className="adminDetailPage">
           <div className="adminDetailTop">
             <a className="adminBackLink" href="/admin">العودة للوحة</a>
@@ -117,7 +115,9 @@ export default function AdminSettingsClient(){
             </form>
           )}
         </main>
-      )}
-    </AdminGuard>
   );
+}
+
+export default function AdminSettingsClient() {
+  return <AdminGuard>{() => <AdminSettingsContent />}</AdminGuard>;
 }
