@@ -87,9 +87,13 @@ function AdminDashboardContent({ profile }: { profile: AdminProfile }) {
   );
   const amountPaid = activeOrders.reduce((sum, order) => {
     const total = Math.max(0, Number(order.totalPrice ?? 0) || 0);
+    if (order.orderType === "كراء") {
+      return sum + (order.rentalReturnStatus === "returned" ? total : 0);
+    }
     return sum + Math.min(total, Math.max(0, Number(order.amountPaid ?? 0) || 0));
   }, 0);
   const remainingAmount = activeOrders.reduce((sum, order) => {
+    if (order.orderType === "كراء") return sum;
     const total = Math.max(0, Number(order.totalPrice ?? 0) || 0);
     const paid = Math.min(total, Math.max(0, Number(order.amountPaid ?? 0) || 0));
     const stored = order.remainingAmount;
@@ -97,6 +101,14 @@ function AdminDashboardContent({ profile }: { profile: AdminProfile }) {
       ? Math.min(total, Math.max(0, stored))
       : Math.max(0, total - paid);
     return sum + remaining;
+  }, 0);
+  const rentalDepositsHeld = activeOrders.reduce((sum, order) => {
+    if (order.orderType !== "كراء" || order.rentalDepositStatus !== "collected" || order.rentalReturnStatus === "returned") return sum;
+    return sum + Math.max(0, Number(order.rentalDepositCollectedAmount ?? 0) || 0);
+  }, 0);
+  const rentalDepositsPending = activeOrders.reduce((sum, order) => {
+    if (order.orderType !== "كراء" || order.rentalDepositStatus === "collected" || order.rentalReturnStatus === "returned") return sum;
+    return sum + Math.max(0, Number(order.rentalSecurityDepositAmount ?? 0) || 0);
   }, 0);
 
   return (
@@ -142,7 +154,9 @@ function AdminDashboardContent({ profile }: { profile: AdminProfile }) {
               <article><span>قيد التنفيذ</span><strong>{orders.filter((x) => !["completed", "cancelled"].includes(String(x.status))).length}</strong></article>
               <article><span>قيمة الطلبات النشطة</span><strong>{money(activeOrderValue)}</strong></article>
               <article><span>المبلغ المحصّل</span><strong>{money(amountPaid)}</strong></article>
-              <article><span>المبلغ المتبقي</span><strong>{money(remainingAmount)}</strong></article>
+              <article><span>المبلغ المتبقي للشراء</span><strong>{money(remainingAmount)}</strong></article>
+              <article><span>ضمانات كراء مستلمة</span><strong>{money(rentalDepositsHeld)}</strong></article>
+              <article><span>ضمانات كراء بانتظار التحصيل</span><strong>{money(rentalDepositsPending)}</strong></article>
             </section>
 
             <div className="adminSearch">
