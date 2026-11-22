@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminGuard from "./AdminGuard";
+import type { AdminProfile } from "@/lib/admin-auth";
 import { signOutAdmin } from "@/lib/admin-auth";
 import {
   loadAdminGroupOrders,
@@ -27,7 +28,7 @@ const statusLabels: Record<string, string> = {
 const statuses = Object.keys(statusLabels);
 const money = (value: number) => `${value.toFixed(0)} درهم`;
 
-export default function AdminDashboardClient() {
+function AdminDashboardContent({ profile }: { profile: AdminProfile }) {
   const router = useRouter();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [groups, setGroups] = useState<AdminGroupOrder[]>([]);
@@ -99,9 +100,7 @@ export default function AdminDashboardClient() {
   }, 0);
 
   return (
-    <AdminGuard>
-      {(profile) => (
-        <div className="adminShell">
+    <div className="adminShell">
           <aside className="adminSidebar">
             <div>
               <p className="eyebrow">MOROCCO GRADUATION</p>
@@ -233,8 +232,10 @@ export default function AdminDashboardClient() {
               </div>
             </section>
           </main>
-        </div>
-      )}
-    </AdminGuard>
+    </div>
   );
+}
+
+export default function AdminDashboardClient() {
+  return <AdminGuard>{(profile) => <AdminDashboardContent profile={profile} />}</AdminGuard>;
 }
