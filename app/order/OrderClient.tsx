@@ -82,7 +82,7 @@ export default function OrderClient() {
     } catch {
       return null;
     }
-  }, [products, cities, draft]);
+  }, [products, cities, draft, shop]);
 
   const minDate = useMemo(() => {
     const now = DateTime.now().setZone("Africa/Casablanca");
