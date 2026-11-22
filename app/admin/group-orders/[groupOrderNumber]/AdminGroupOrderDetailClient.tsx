@@ -22,7 +22,7 @@ const labels: Record<string,string> = {
 
 function value(x: unknown){ const s=String(x??"").trim(); return s||"—"; }
 
-export default function AdminGroupOrderDetailClient(){
+function AdminGroupOrderDetailContent(){
   const params=useParams<{groupOrderNumber:string}>();
   const router=useRouter();
   const groupOrderNumber=decodeURIComponent(params.groupOrderNumber);
@@ -55,8 +55,6 @@ export default function AdminGroupOrderDetailClient(){
   const members=Array.isArray(order.members)?order.members.map(String):[];
 
   return (
-    <AdminGuard>
-      {()=>(
         <main className="adminDetailPage">
           <div className="adminDetailTop">
             <button type="button" onClick={()=>router.push("/admin")}>العودة</button>
@@ -165,7 +163,9 @@ export default function AdminGroupOrderDetailClient(){
             </section>
           )}
         </main>
-      )}
-    </AdminGuard>
   );
+}
+
+export default function AdminGroupOrderDetailClient() {
+  return <AdminGuard>{() => <AdminGroupOrderDetailContent />}</AdminGuard>;
 }
