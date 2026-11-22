@@ -221,16 +221,27 @@ function AdminOrderDetailContent() {
 
             <article className="adminDetailCard">
               <h2>الدفع</h2>
-              <dl>
-                <div><dt>الطريقة</dt><dd>{text(order.paymentMethod)}</dd></div>
-                <div><dt>الحالة</dt><dd>{paymentLabels[String(order.paymentStatus ?? "pending")] ?? text(order.paymentStatus)}</dd></div>
-                <div><dt>المحصل</dt><dd>{money(order.amountPaid)}</dd></div>
-                <div><dt>المتبقي</dt><dd>{money(order.remainingAmount)}</dd></div>
-                <div><dt>التسبيق المطلوب</dt><dd>{money(order.depositRequiredAmount)}</dd></div>
-              </dl>
-              <button type="button" className="adminAction" disabled={saving} onClick={() => void savePayment()}>
-                تحديث المبلغ المحصل
-              </button>
+              {String(order.orderType) === "كراء" ? (
+                <dl>
+                  <div><dt>طريقة دفع الضمان</dt><dd>{text(order.paymentMethod)}</dd></div>
+                  <div><dt>المبلغ المطلوب عند الاستلام</dt><dd>{money(Number(order.rentalSecurityDepositAmount ?? 0) + Number(order.deliveryFeeApplied ?? 0))}</dd></div>
+                  <div><dt>حالة الاستلام</dt><dd>{order.rentalDepositStatus === "collected" ? "تم استلام الضمان ورسوم التوصيل" : "بانتظار استلام الضمان ورسوم التوصيل"}</dd></div>
+                  {order.rentalDepositStatus === "collected" && <div><dt>المبلغ المستلم</dt><dd>{money(Number(order.rentalDepositCollectedAmount ?? 0) + Number(order.rentalDeliveryFeeCollectedAmount ?? 0))}</dd></div>}
+                </dl>
+              ) : (
+                <>
+                  <dl>
+                    <div><dt>الطريقة</dt><dd>{text(order.paymentMethod)}</dd></div>
+                    <div><dt>الحالة</dt><dd>{paymentLabels[String(order.paymentStatus ?? "pending")] ?? text(order.paymentStatus)}</dd></div>
+                    <div><dt>المحصل</dt><dd>{money(order.amountPaid)}</dd></div>
+                    <div><dt>المتبقي</dt><dd>{money(order.remainingAmount)}</dd></div>
+                    <div><dt>التسبيق المطلوب</dt><dd>{money(order.depositRequiredAmount)}</dd></div>
+                  </dl>
+                  <button type="button" className="adminAction" disabled={saving} onClick={() => void savePayment()}>
+                    تحديث المبلغ المحصل
+                  </button>
+                </>
+              )}
             </article>
           </section>
 
@@ -253,7 +264,7 @@ function AdminOrderDetailContent() {
                 <div className="formNotice">
                   <p>بعد التحقق من وصول مبلغ الضمان فعليًا، سجّل استلامه هنا.</p>
                   <button type="button" className="adminAction" disabled={saving} onClick={() => void confirmRentalDeposit()}>
-                    تأكيد استلام الضمان ({money(order.rentalSecurityDepositAmount)})
+                    تأكيد استلام الضمان ورسوم التوصيل ({money(Number(order.rentalSecurityDepositAmount ?? 0) + Number(order.deliveryFeeApplied ?? 0))})
                   </button>
                 </div>
               )}
