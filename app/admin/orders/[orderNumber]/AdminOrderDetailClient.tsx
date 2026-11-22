@@ -37,7 +37,7 @@ function text(value: unknown) {
   return s || "—";
 }
 
-export default function AdminOrderDetailClient() {
+function AdminOrderDetailContent() {
   const params = useParams<{ orderNumber: string }>();
   const router = useRouter();
   const orderNumber = decodeURIComponent(params.orderNumber);
@@ -130,8 +130,6 @@ export default function AdminOrderDetailClient() {
     : [];
 
   return (
-    <AdminGuard>
-      {() => (
         <main className="adminDetailPage">
           <div className="adminDetailTop">
             <button type="button" onClick={() => router.push("/admin")}>العودة</button>
@@ -234,7 +232,9 @@ export default function AdminOrderDetailClient() {
             <p>{text(order.notes)}</p>
           </section>
         </main>
-      )}
-    </AdminGuard>
   );
+}
+
+export default function AdminOrderDetailClient() {
+  return <AdminGuard>{() => <AdminOrderDetailContent />}</AdminGuard>;
 }
