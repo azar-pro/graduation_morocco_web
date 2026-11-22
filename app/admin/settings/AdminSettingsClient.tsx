@@ -38,6 +38,8 @@ function AdminSettingsContent(){
         fullPaymentEnabled:data.fullPaymentEnabled!==false,
         paymentDeadlineHours:Math.max(1,Math.min(720,Number(data.paymentDeadlineHours??48))),
         depositPercentage:Math.max(1,Math.min(100,Number(data.depositPercentage??50))),
+        rentalSecurityDepositSatin:Math.max(0,Math.round(Number(data.rentalSecurityDepositSatin??250))),
+        rentalSecurityDepositMoubara:Math.max(0,Math.round(Number(data.rentalSecurityDepositMoubara??300))),
         customerNotice:String(data.customerNotice??""),
         cancellationPolicy:String(data.cancellationPolicy??""),
         exchangeReturnPolicy:String(data.exchangeReturnPolicy??""),
@@ -101,6 +103,8 @@ function AdminSettingsContent(){
                 <div className="fieldGrid">
                   <label>مهلة الدفع بالساعات<input type="number" min="1" max="720" value={Number(data.paymentDeadlineHours??48)} onChange={e=>patch("paymentDeadlineHours",Number(e.target.value))}/></label>
                   <label>نسبة التسبيق %<input type="number" min="1" max="100" value={Number(data.depositPercentage??50)} onChange={e=>patch("depositPercentage",Number(e.target.value))}/></label>
+                  <label>ضمان كراء الساتان (درهم)<input type="number" min="0" step="1" value={Number(data.rentalSecurityDepositSatin??250)} onChange={e=>patch("rentalSecurityDepositSatin",Number(e.target.value))}/></label>
+                  <label>ضمان كراء الموبرة (درهم)<input type="number" min="0" step="1" value={Number(data.rentalSecurityDepositMoubara??300)} onChange={e=>patch("rentalSecurityDepositMoubara",Number(e.target.value))}/></label>
                 </div>
               </section>
 
