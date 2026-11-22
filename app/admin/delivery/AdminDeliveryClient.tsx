@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import AdminGuard from "../AdminGuard";
 import { loadAdminDelivery, saveAdminDeliveryCity, type AdminDeliveryCity } from "@/lib/admin-data";
 
-export default function AdminDeliveryClient(){
+function AdminDeliveryContent(){
   const [cities,setCities]=useState<AdminDeliveryCity[]>([]);
   const [loading,setLoading]=useState(true);
   const [message,setMessage]=useState("");
@@ -34,8 +34,6 @@ export default function AdminDeliveryClient(){
   }
 
   return (
-    <AdminGuard>
-      {()=>(
         <main className="adminDetailPage">
           <div className="adminDetailTop">
             <a className="adminBackLink" href="/admin">العودة للوحة</a>
@@ -73,7 +71,9 @@ export default function AdminDeliveryClient(){
             ))}
           </div>
         </main>
-      )}
-    </AdminGuard>
   );
+}
+
+export default function AdminDeliveryClient() {
+  return <AdminGuard>{() => <AdminDeliveryContent />}</AdminGuard>;
 }
