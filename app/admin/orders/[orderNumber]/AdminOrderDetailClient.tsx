@@ -7,6 +7,8 @@ import {
   loadAdminOrder,
   updateOrderPayment,
   updateOrderStatus,
+  confirmRentalDepositReceived,
+  settleRentalReturn,
   type AdminOrder,
 } from "@/lib/admin-data";
 
@@ -45,6 +47,7 @@ function AdminOrderDetailContent() {
   const [loading,setLoading] = useState(true);
   const [message,setMessage] = useState("");
   const [saving,setSaving] = useState(false);
+  const [damageDeduction,setDamageDeduction] = useState("0");
 
   async function refresh() {
     setLoading(true);
@@ -117,6 +120,41 @@ function AdminOrderDetailContent() {
       await refresh();
     } catch {
       setMessage("تعذر تحديث الدفع.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+
+  async function confirmRentalDeposit() {
+    if (!order) return;
+    setSaving(true);
+    setMessage("");
+    try {
+      await confirmRentalDepositReceived(String(order.orderNumber ?? order.id));
+      await refresh();
+      setMessage("تم تسجيل استلام ضمان الكراء.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذر تسجيل الضمان.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function settleRental() {
+    if (!order) return;
+    setSaving(true);
+    setMessage("");
+    try {
+      const result = await settleRentalReturn({
+        orderNumber: String(order.orderNumber ?? order.id),
+        damageDeduction: Number(damageDeduction),
+      });
+      await refresh();
+      setMessage(`تمت التسوية. المبلغ المعاد: ${money(result.refund)}.` +
+        (result.additionalDue > 0 ? ` المبلغ الإضافي المستحق بسبب الضرر: ${money(result.additionalDue)}.` : ""));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذرت تسوية إرجاع الكراء.");
     } finally {
       setSaving(false);
     }
@@ -195,6 +233,45 @@ function AdminOrderDetailContent() {
               </button>
             </article>
           </section>
+
+
+          {String(order.orderType) === "كراء" && (
+            <section className="adminDetailCard">
+              <h2>ضمان الكراء وتسوية الإرجاع</h2>
+              <dl>
+                <div><dt>سعر الكراء المستحق</dt><dd>{money(order.rentalFeeAmount)}</dd></div>
+                <div><dt>الضمان المطلوب</dt><dd>{money(order.rentalSecurityDepositAmount)}</dd></div>
+                <div><dt>حالة الضمان</dt><dd>{String(order.rentalDepositStatus ?? "pending") === "collected" ? "تم استلام الضمان" : "لم يتم تسجيل استلام الضمان"}</dd></div>
+                <div><dt>حالة الإرجاع</dt><dd>{String(order.rentalReturnStatus ?? "awaiting_return") === "returned" ? "تم إرجاع البدلة" : "بانتظار إرجاع البدلة"}</dd></div>
+                {order.rentalReturnStatus === "returned" && <>
+                  <div><dt>خصم الضرر</dt><dd>{money(order.rentalDamageDeduction)}</dd></div>
+                  <div><dt>المبلغ المعاد للعميل</dt><dd>{money(order.rentalRefundAmount)}</dd></div>
+                  {Number(order.rentalAdditionalDamageDue ?? 0) > 0 && <div><dt>مبلغ إضافي مستحق بسبب الضرر</dt><dd>{money(order.rentalAdditionalDamageDue)}</dd></div>}
+                </>}
+              </dl>
+              {order.rentalDepositStatus !== "collected" && (
+                <div className="formNotice">
+                  <p>بعد التحقق من وصول مبلغ الضمان فعليًا، سجّل استلامه هنا.</p>
+                  <button type="button" className="adminAction" disabled={saving} onClick={() => void confirmRentalDeposit()}>
+                    تأكيد استلام الضمان ({money(order.rentalSecurityDepositAmount)})
+                  </button>
+                </div>
+              )}
+              {order.rentalDepositStatus === "collected" && order.rentalReturnStatus !== "returned" && (
+                <div className="fieldGrid">
+                  <label>خصم الضرر (درهم)
+                    <input type="number" min="0" step="1" value={damageDeduction} onChange={e=>setDamageDeduction(e.target.value)} disabled={saving}/>
+                  </label>
+                  <div>
+                    <p className="sectionHint">سيُخصم سعر الكراء تلقائيًا، ثم خصم الضرر الذي تدخله، ويُحسب المبلغ المتبقي لإعادته للعميل.</p>
+                    <button type="button" className="adminAction" disabled={saving || !Number.isFinite(Number(damageDeduction)) || Number(damageDeduction) < 0} onClick={() => void settleRental()}>
+                      تأكيد الإرجاع وحساب المبلغ المعاد
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
 
           <section className="adminDetailCard">
             <h2>الطباعة والتخصيص</h2>
