@@ -550,42 +550,43 @@ service cloud.firestore {
     function validGroupOrder(data, orderId) {
       let purchase = data.orderType == 'شراء';
       let rental = data.orderType == 'كراء';
-      let purchaseMembers = data.members is list && data.members.size() <= 100
-        && ((data.membersExcelUrl is string && validHttpsUrl(data.membersExcelUrl)
-          && data.membersExcelName is string && data.membersExcelName.size() >= 1
-          && data.membersExcelName.size() <= 180 && data.members.size() == 0)
-          || (data.membersExcelUrl == null && data.membersExcelName == null
-            && data.members.size() == data.quantity && data.members.size() >= 5));
-      let rentalMembers = data.members is list && data.members.size() == 0
-        && data.membersExcelUrl == null && data.membersExcelName == null;
-      let purchaseOptions = data.productType in ['fullOutfit','shawlAndCap']
-        && validGroupPrintingOption(data.rightShawl) && validGroupPrintingOption(data.leftShawl)
-        && validGroupPrintingOption(data.backShawl) && validGroupPrintingOption(data.cap)
-        && validGroupReferenceImages(data.referenceImages);
-      let rentalOptions = data.productType == 'fullOutfit'
-        && validGroupPrintingOption(data.rightShawl) && data.rightShawl.enabled == false
-        && validGroupPrintingOption(data.leftShawl) && data.leftShawl.enabled == false
-        && validGroupPrintingOption(data.backShawl) && data.backShawl.enabled == false
-        && validGroupPrintingOption(data.cap) && data.cap.enabled == false
-        && data.referenceImages is list && data.referenceImages.size() == 0;
+      let validMembers = purchase
+        ? data.members is list && data.members.size() == data.quantity
+            && data.members.size() >= 5 && data.members.size() <= 100
+            && data.membersExcelUrl == null && data.membersExcelName == null
+          || (data.members is list && data.members.size() == 0
+            && validHttpsUrl(data.membersExcelUrl)
+            && data.membersExcelName is string
+            && data.membersExcelName.size() >= 1
+            && data.membersExcelName.size() <= 180)
+        : rental && data.members is list && data.members.size() == 0
+            && data.membersExcelUrl == null && data.membersExcelName == null;
+      let validProduct = (purchase && data.productType in ['fullOutfit','shawlAndCap'])
+        || (rental && data.productType == 'fullOutfit');
       let validAddress = data.deliveryMethod == 'pickup' ? data.address == ''
         : data.address is string && data.address.size() >= 3 && data.address.size() <= 500;
-      let validSchedule = data.scheduledAt is timestamp && data.scheduledAt >= request.time + duration.value(24,'h')
+      let validSchedule = data.scheduledAt is timestamp
+        && data.scheduledAt >= request.time + duration.value(24,'h')
         && ((purchase && data.returnAt == null)
-          || (rental && data.returnAt is timestamp && data.returnAt == data.scheduledAt + duration.value(24,'h')));
+          || (rental && data.returnAt is timestamp
+            && data.returnAt == data.scheduledAt + duration.value(24,'h')));
       return !data.keys().hasAny([
           'totalPrice','amountPaid','remainingAmount','paymentStatus','paymentMethod',
           'rentalSecurityDepositAmount','role','active','admin','trackingPhoneKey'
         ])
-        && data.groupOrderNumber == orderId && orderId.matches('^GRP-[0-9]{4}-[A-HJ-NP-Z2-9]{8}$')
-        && data.orderType in ['شراء','كراء'] && data.quantity is int && data.quantity >= 5 && data.quantity <= 100
-        && data.responsibleName is string && data.responsibleName.size() >= 3 && data.responsibleName.size() <= 120
+        && data.groupOrderNumber == orderId
+        && orderId.matches('^GRP-[0-9]{4}-[A-HJ-NP-Z2-9]{8}$')
+        && (purchase || rental)
+        && data.quantity is int && data.quantity >= 5 && data.quantity <= 100
+        && data.responsibleName is string && data.responsibleName.size() >= 3
+        && data.responsibleName.size() <= 120
         && data.phoneNumber is string && data.phoneNumber.matches('^(05|06|07)[0-9]{8}$')
         && data.city is string && data.city.size() >= 1 && data.city.size() <= 80
-        && data.deliveryMethod in ['homeDelivery','pickup'] && validAddress && validSchedule
-        && ((purchase && purchaseMembers && purchaseOptions) || (rental && rentalMembers && rentalOptions))
+        && data.deliveryMethod in ['homeDelivery','pickup'] && validAddress
+        && validSchedule && validMembers && validProduct
         && data.customizationScope == 'shared_group_design'
-        && data.notes is string && data.notes.size() <= 1000 && data.status == 'received'
+        && data.notes is string && data.notes.size() <= 1000
+        && data.status == 'received'
         && data.createdAt == request.time && data.updatedAt == request.time
         && groupOrderShopAllows(data.orderType);
     }
