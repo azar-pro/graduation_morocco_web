@@ -1,0 +1,1207 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.active == true;
+    }
+
+    function validOrderNumber(value) {
+      return value is string
+          && value.matches('^GM-[0-9]{4}-[0-9]{6}$');
+    }
+
+    function validHttpsUrl(value) {
+      return value is string
+          && value.size() >= 9
+          && value.size() <= 2048
+          && value.matches('^https://.+');
+    }
+
+    function validReferenceImages(images) {
+      return images is list
+          && images.size() <= 4
+          && (images.size() < 1 || validHttpsUrl(images[0]))
+          && (images.size() < 2 || validHttpsUrl(images[1]))
+          && (images.size() < 3 || validHttpsUrl(images[2]))
+          && (images.size() < 4 || validHttpsUrl(images[3]));
+    }
+
+    function validPrintingOption(option) {
+      let disabled = option.enabled == false
+          && option.type == ''
+          && option.text == ''
+          && option.logoPath == null;
+      let textOnly = option.enabled == true
+          && option.type == 'text'
+          && option.text is string
+          && option.text.size() >= 1
+          && option.text.size() <= 500
+          && option.logoPath == null;
+      let logoOnly = option.enabled == true
+          && option.type == 'logo'
+          && option.text == ''
+          && validHttpsUrl(option.logoPath);
+      let both = option.enabled == true
+          && option.type == 'both'
+          && option.text is string
+          && option.text.size() >= 1
+          && option.text.size() <= 500
+          && validHttpsUrl(option.logoPath);
+
+      return option is map
+          && option.keys().hasOnly(['enabled', 'type', 'text', 'logoPath'])
+          && option.enabled is bool
+          && option.type is string
+          && option.text is string
+          && (disabled || textOnly || logoOnly || both);
+    }
+
+    function validOrderContent(data) {
+      let validGender = data.productType == 'shawlOnly'
+          ? data.gender == ''
+          : data.gender in ['ذكر', 'أنثى'];
+      let validAddress = data.deliveryMethod == 'pickup'
+          ? data.address == ''
+          : data.address is string
+              && data.address.size() >= 3
+              && data.address.size() <= 500;
+      let validFesArea = data.fesArea == null;
+      let rentalContent = data.orderType != 'كراء'
+          || (
+            data.referenceImages.size() == 0
+            && data.rightShawl.enabled == false
+            && data.leftShawl.enabled == false
+            && data.backShawl.enabled == false
+            && data.cap.enabled == false
+          );
+      let shawlOnlyCap = data.productType != 'shawlOnly'
+          || data.cap.enabled == false;
+
+      return data.orderType in ['شراء', 'كراء']
+          && data.productType in ['fullOutfit', 'shawlAndCap', 'shawlOnly']
+          && validGender
+          && data.fabric in ['ساتان', 'موبرة']
+          && data.shawlColor is string
+          && data.shawlColor.size() >= 1
+          && data.shawlColor.size() <= 80
+          && data.fullName is string
+          && data.fullName.size() >= 3
+          && data.fullName.size() <= 120
+          && data.phoneNumber is string
+          && data.phoneNumber.matches('^(05|06|07)[0-9]{8}$')
+          && data.trackingPhoneKey == data.phoneNumber
+          && data.city is string
+          && data.city.size() >= 1
+          && data.city.size() <= 80
+          && data.deliveryMethod in ['homeDelivery', 'pickup']
+          && validAddress
+          && validFesArea
+          && data.notes is string
+          && data.notes.size() <= 1000
+          && data.deliveryNotes is string
+          && data.deliveryNotes.size() <= 1000
+          && data.deliveryTime is string
+          && data.deliveryTime.matches('^(09|10|11|12|13|14|15|16|17|18|19|20|21):00$')
+          && validReferenceImages(data.referenceImages)
+          && validPrintingOption(data.rightShawl)
+          && validPrintingOption(data.leftShawl)
+          && validPrintingOption(data.backShawl)
+          && validPrintingOption(data.cap)
+          && rentalContent
+          && shawlOnlyCap;
+    }
+
+    function configuredShopAllowsNewOrder(orderType) {
+      let shop = get(/databases/$(database)/documents/settings/shop).data;
+      let accepting = !shop.keys().hasAny(['acceptingOrders'])
+          || shop.acceptingOrders == true;
+      let maintenanceOff = !shop.keys().hasAny(['maintenanceMode'])
+          || shop.maintenanceMode == false;
+      let purchaseAllowed = !shop.keys().hasAny(['purchaseEnabled'])
+          || shop.purchaseEnabled == true;
+      let rentalAllowed = !shop.keys().hasAny(['rentalEnabled'])
+          || shop.rentalEnabled == true;
+
+      return accepting
+          && maintenanceOff
+          && (
+            (orderType == 'شراء' && purchaseAllowed)
+            || (orderType == 'كراء' && rentalAllowed)
+          );
+    }
+
+    function shopAllowsNewOrder(orderType) {
+      return orderType in ['شراء', 'كراء']
+          && (
+            !exists(/databases/$(database)/documents/settings/shop)
+            || configuredShopAllowsNewOrder(orderType)
+          );
+    }
+
+    function configuredOrderRulesMatch(data) {
+      let rules = get(/databases/$(database)/documents/settings/order_rules).data;
+      let preparationDays = !rules.keys().hasAny(['purchasePreparationDays'])
+          ? 2
+          : rules.purchasePreparationDays;
+      let rentalHours = !rules.keys().hasAny(['rentalAdvanceHours'])
+          ? 24
+          : rules.rentalAdvanceHours;
+      let urgentEnabled = !rules.keys().hasAny(['urgentOrdersEnabled'])
+          ? false
+          : rules.urgentOrdersEnabled == true;
+      let urgentHours = !rules.keys().hasAny(['urgentMinimumHours'])
+          ? 12
+          : rules.urgentMinimumHours;
+
+      return preparationDays is int
+          && preparationDays >= 1
+          && preparationDays <= 30
+          && rentalHours is int
+          && rentalHours >= 1
+          && rentalHours <= 168
+          && urgentHours is int
+          && urgentHours >= 1
+          && urgentHours <= 72
+          && data.purchasePreparationDaysApplied == preparationDays
+          && data.rentalAdvanceHoursApplied == rentalHours
+          && (
+            data.urgentOrder == false
+            || (
+              data.orderType == 'شراء'
+              && urgentEnabled
+              && data.urgentMinimumHoursApplied == urgentHours
+            )
+          );
+    }
+
+    function defaultOrderRulesMatch(data) {
+      return data.purchasePreparationDaysApplied == 2
+          && data.rentalAdvanceHoursApplied == 24
+          && data.urgentOrder == false;
+    }
+
+    function orderRulesAllowSchedule(data) {
+      let configured = exists(/databases/$(database)/documents/settings/order_rules);
+      let rulesMatch = configured
+          ? configuredOrderRulesMatch(data)
+          : defaultOrderRulesMatch(data);
+      let validReturnSchedule = data.orderType == 'كراء'
+          ? data.returnAt is timestamp
+              && data.returnAt == data.scheduledAt + duration.value(24, 'h')
+              && data.returnDate is string
+              && data.returnDate.size() >= 10
+              && data.returnDate.size() <= 40
+              && data.returnTime is string
+              && data.returnTime.matches('^(09|10|11|12|13|14|15|16|17|18|19|20|21):00$')
+          : !data.keys().hasAny(['returnAt'])
+              && data.returnDate == null
+              && data.returnTime == '';
+
+      return data.scheduledAt is timestamp
+          && data.purchasePreparationDaysApplied is int
+          && data.rentalAdvanceHoursApplied is int
+          && data.scheduleTimeZone == 'Africa/Casablanca'
+          && validReturnSchedule
+          && rulesMatch
+          && (
+            (
+              data.orderType == 'شراء'
+              && (
+                (
+                  data.urgentOrder == false
+                  && data.scheduledAt >= request.time
+                      + duration.value(data.purchasePreparationDaysApplied, 'd')
+                )
+                || (
+                  data.urgentOrder == true
+                  && data.urgentMinimumHoursApplied is int
+                  && data.scheduledAt >= request.time
+                      + duration.value(data.urgentMinimumHoursApplied, 'h')
+                )
+              )
+            )
+            || (
+              data.orderType == 'كراء'
+              && data.urgentOrder == false
+              && data.scheduledAt >= request.time
+                  + duration.value(data.rentalAdvanceHoursApplied, 'h')
+            )
+          );
+    }
+
+    function validPrintingPrice(data, basePrice) {
+      let shawlPrinting = data.orderType == 'شراء'
+          && (
+            data.rightShawl.enabled == true
+            || data.leftShawl.enabled == true
+            || data.backShawl.enabled == true
+          );
+      let capPrinting = data.orderType == 'شراء'
+          && data.productType != 'shawlOnly'
+          && data.cap.enabled == true;
+
+      return (
+            !shawlPrinting
+            && !capPrinting
+            && data.productPriceApplied == basePrice
+          )
+          || (
+            shawlPrinting
+            && !capPrinting
+            && data.productPriceApplied == basePrice + 40
+          )
+          || (
+            !shawlPrinting
+            && capPrinting
+            && data.productPriceApplied == basePrice + 40
+          )
+          || (
+            shawlPrinting
+            && capPrinting
+            && data.productPriceApplied == basePrice + 80
+          );
+    }
+
+    function validProductPricing(data) {
+      let productExists = data.catalogProductId is string
+          && data.catalogProductId != ''
+          && exists(/databases/$(database)/documents/products/$(data.catalogProductId));
+      let product = productExists
+          ? get(/databases/$(database)/documents/products/$(data.catalogProductId)).data
+          : {};
+      let productActive = productExists
+          && (!product.keys().hasAny(['active']) || product.active == true);
+      let productMatches = productActive
+          && product.productType == data.productType;
+
+      return productMatches
+          && data.productPriceApplied is int
+          && data.productPriceApplied >= 0
+          && (
+            (
+              data.orderType == 'شراء'
+              && data.fabric == 'ساتان'
+              && product.purchaseSatin is int
+              && product.purchaseSatin >= 0
+              && validPrintingPrice(data, product.purchaseSatin)
+            )
+            || (
+              data.orderType == 'شراء'
+              && data.fabric == 'موبرة'
+              && product.purchaseMoubara is int
+              && product.purchaseMoubara >= 0
+              && validPrintingPrice(data, product.purchaseMoubara)
+            )
+            || (
+              data.orderType == 'كراء'
+              && data.fabric == 'ساتان'
+              && product.rentalSatin is int
+              && product.rentalSatin >= 0
+              && validPrintingPrice(data, product.rentalSatin)
+            )
+            || (
+              data.orderType == 'كراء'
+              && data.fabric == 'موبرة'
+              && product.rentalMoubara is int
+              && product.rentalMoubara >= 0
+              && validPrintingPrice(data, product.rentalMoubara)
+            )
+          );
+    }
+
+    function validFesDeliveryPricing(data) {
+      return data.deliveryPricingDocumentId == 'fes'
+          && data.fesArea == null
+          && data.deliveryFeeApplied == 20;
+    }
+
+    function validCityDeliveryPricing(data) {
+      let idValid = data.deliveryPricingDocumentId is string
+          && data.deliveryPricingDocumentId != ''
+          && data.deliveryPricingDocumentId != 'fes';
+      let cityExists = idValid
+          && exists(/databases/$(database)/documents/delivery_settings/$(data.deliveryPricingDocumentId));
+      let city = cityExists
+          ? get(/databases/$(database)/documents/delivery_settings/$(data.deliveryPricingDocumentId)).data
+          : {};
+
+      return cityExists
+          && city.type == 'city'
+          && city.name == data.city
+          && (!city.keys().hasAny(['active']) || city.active == true)
+          && city.price is int
+          && city.price >= 0
+          && data.deliveryFeeApplied == city.price;
+    }
+
+    function validDeliveryPricing(data) {
+      return data.deliveryFee is int
+          && data.deliveryFeeApplied is int
+          && data.deliveryFee >= 0
+          && data.deliveryFee == data.deliveryFeeApplied
+          && (
+            (
+              data.deliveryMethod == 'pickup'
+              && data.deliveryPricingDocumentId == ''
+              && data.deliveryFeeApplied == 0
+            )
+            || (
+              data.deliveryMethod == 'homeDelivery'
+              && data.city == 'Fes'
+              && validFesDeliveryPricing(data)
+            )
+            || (
+              data.deliveryMethod == 'homeDelivery'
+              && data.city != 'Fes'
+              && validCityDeliveryPricing(data)
+            )
+          );
+    }
+
+    function validRentalDeposit(data) {
+      let shop = exists(/databases/$(database)/documents/settings/shop)
+          ? get(/databases/$(database)/documents/settings/shop).data : {};
+      let satin = !shop.keys().hasAny(['rentalSecurityDepositSatin']) ? 250 : shop.rentalSecurityDepositSatin;
+      let moubara = !shop.keys().hasAny(['rentalSecurityDepositMoubara']) ? 300 : shop.rentalSecurityDepositMoubara;
+      return data.orderType != 'كراء'
+        ? !data.keys().hasAny(['rentalFeeAmount','rentalSecurityDepositAmount','rentalDepositCollectedAmount','rentalDepositStatus','rentalReturnStatus','rentalDamageDeduction','rentalRefundAmount','rentalAdditionalDamageDue','rentalSettlementStatus'])
+        : data.rentalFeeAmount == data.productPriceApplied
+          && data.rentalSecurityDepositAmount is int && data.rentalSecurityDepositAmount >= 0
+          && ((data.fabric == 'ساتان' && satin is int && data.rentalSecurityDepositAmount == satin)
+            || (data.fabric == 'موبرة' && moubara is int && data.rentalSecurityDepositAmount == moubara))
+          && data.rentalDepositCollectedAmount == 0 && data.rentalDepositStatus == 'pending'
+          && data.rentalReturnStatus == 'awaiting_return' && data.rentalDamageDeduction == 0
+          && data.rentalRefundAmount == null && data.rentalAdditionalDamageDue == 0
+          && data.rentalSettlementStatus == 'pending';
+    }
+
+    function validOrderAmounts(data) {
+      return validProductPricing(data) && validDeliveryPricing(data)
+          && data.totalPrice is int && data.totalPrice >= 0
+          && data.totalPrice == data.productPriceApplied + data.deliveryFeeApplied
+          && data.amountPaid == 0 && data.remainingAmount == data.totalPrice
+          && validRentalDeposit(data);
+    }
+
+    function validPaymentSelection(data) {
+      let purchasePlan = data.orderType == 'شراء' && data.bankTransferPlan in ['deposit','full'];
+      let rentalPlan = data.orderType == 'كراء' && data.bankTransferPlan == '';
+      return data.paymentStatus == 'pending' && data.amountPaid == 0
+          && (
+            (data.paymentMethod == 'cash_at_store' && data.deliveryMethod == 'pickup'
+              && data.city == 'Fes' && data.bankTransferPlan == '' && data.paymentProvider == '')
+            || (data.paymentMethod == 'bank_transfer' && (purchasePlan || rentalPlan)
+              && data.paymentProvider == '')
+            || (data.paymentMethod == 'cash_transfer_agency' && (purchasePlan || rentalPlan)
+              && data.paymentProvider in ['cash_plus','wafacash','western_union','other'])
+          );
+    }
+
+    function configuredPaymentSnapshotsMatch(data) {
+      let shop = get(/databases/$(database)/documents/settings/shop).data;
+      let deadlineHours = !shop.keys().hasAny(['paymentDeadlineHours']) ? 48 : shop.paymentDeadlineHours;
+      let depositPercentage = !shop.keys().hasAny(['depositPercentage']) ? 50 : shop.depositPercentage;
+      let noProof = !data.keys().hasAny(['paymentDeadlineHoursApplied','paymentDeadlineTimeZone','depositPercentageApplied','depositRequiredAmount']);
+      let noDeposit = !data.keys().hasAny(['depositPercentageApplied','depositRequiredAmount']);
+      return (data.paymentMethod == 'cash_at_store' && noProof)
+        || (data.paymentMethod in ['bank_transfer','cash_transfer_agency']
+          && deadlineHours is int && deadlineHours >= 1 && deadlineHours <= 720
+          && data.paymentDeadlineHoursApplied == deadlineHours
+          && data.paymentDeadlineTimeZone == 'Africa/Casablanca'
+          && (
+            (data.orderType == 'كراء' && data.bankTransferPlan == '' && noDeposit)
+            || (data.orderType == 'شراء' && data.bankTransferPlan == 'deposit'
+              && depositPercentage is int && depositPercentage >= 1 && depositPercentage <= 100
+              && data.depositPercentageApplied == depositPercentage
+              && data.depositRequiredAmount == data.totalPrice * depositPercentage / 100)
+            || (data.orderType == 'شراء' && data.bankTransferPlan == 'full' && noDeposit)
+          ));
+    }
+
+        function defaultPaymentSnapshotsMatch(data) {
+      let noProof = !data.keys().hasAny(['paymentDeadlineHoursApplied','paymentDeadlineTimeZone','depositPercentageApplied','depositRequiredAmount']);
+      let noDeposit = !data.keys().hasAny(['depositPercentageApplied','depositRequiredAmount']);
+      return (data.paymentMethod == 'cash_at_store' && noProof)
+        || (data.paymentMethod in ['bank_transfer','cash_transfer_agency']
+          && data.paymentDeadlineHoursApplied == 48
+          && data.paymentDeadlineTimeZone == 'Africa/Casablanca'
+          && (
+            (data.orderType == 'كراء' && data.bankTransferPlan == '' && noDeposit)
+            || (data.orderType == 'شراء' && data.bankTransferPlan == 'deposit'
+              && data.depositPercentageApplied == 50
+              && data.depositRequiredAmount == data.totalPrice * 50 / 100)
+            || (data.orderType == 'شراء' && data.bankTransferPlan == 'full' && noDeposit)
+          ));
+    }
+
+        function validPaymentSnapshots(data) {
+      return exists(/databases/$(database)/documents/settings/shop)
+          ? configuredPaymentSnapshotsMatch(data)
+          : defaultPaymentSnapshotsMatch(data);
+    }
+
+    function configuredShopAllowsPayment(data) {
+      let shop = get(/databases/$(database)/documents/settings/shop).data;
+      let cashAtStoreAllowed = !shop.keys().hasAny(['cashAtStoreEnabled'])
+          || shop.cashAtStoreEnabled == true;
+      let bankTransferAllowed = !shop.keys().hasAny(['bankTransferEnabled'])
+          || shop.bankTransferEnabled == true;
+      let transferAgencyAllowed = !shop.keys().hasAny(['cashTransferAgencyEnabled'])
+          || shop.cashTransferAgencyEnabled == true;
+      let depositAllowed = !shop.keys().hasAny(['depositPaymentEnabled'])
+          || shop.depositPaymentEnabled == true;
+      let fullPaymentAllowed = !shop.keys().hasAny(['fullPaymentEnabled'])
+          || shop.fullPaymentEnabled == true;
+      let transferPlanAllowed =
+          (data.orderType == 'كراء' && data.bankTransferPlan == '')
+          || (data.orderType == 'شراء' && (
+            (data.bankTransferPlan == 'deposit' && depositAllowed)
+            || (data.bankTransferPlan == 'full' && fullPaymentAllowed)
+          ));
+
+      return (
+            data.paymentMethod == 'cash_at_store'
+            && cashAtStoreAllowed
+          )
+          || (
+            data.paymentMethod == 'bank_transfer'
+            && bankTransferAllowed
+            && transferPlanAllowed
+          )
+          || (
+            data.paymentMethod == 'cash_transfer_agency'
+            && transferAgencyAllowed
+            && transferPlanAllowed
+          );
+    }
+
+    function shopAllowsPayment(data) {
+      return validPaymentSelection(data)
+          && validPaymentSnapshots(data)
+          && (
+            !exists(/databases/$(database)/documents/settings/shop)
+            || configuredShopAllowsPayment(data)
+          );
+    }
+
+    function validPublicCounterLink(yearId, counterData) {
+      let orderNumber = counterData.lastOrderNumber;
+      let order = getAfter(/databases/$(database)/documents/orders/$(orderNumber)).data;
+      return counterData.keys().hasOnly(['lastNumber','lastOrderNumber','reconciledWithSavedOrders','updatedAt'])
+        && counterData.lastNumber is int && orderNumber is string
+        && orderNumber.matches('^GM-' + yearId + '-[0-9]{6}
+      allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /delivery_settings/{documentId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /settings/shop {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /settings/order_rules {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /settings/notification_rules {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow create: if request.resource.data.orderNumber == orderId
+        && validOrderNumber(orderId)
+        && validOrderCounterLink(request.resource.data, orderId)
+        && request.resource.data.status == 'received'
+        && request.resource.data.trackingPhoneKey is string
+        && request.resource.data.orderType is string
+        && request.resource.data.urgentOrder is bool
+        && validOrderContent(request.resource.data)
+        && shopAllowsNewOrder(request.resource.data.orderType)
+        && orderRulesAllowSchedule(request.resource.data)
+        && validOrderAmounts(request.resource.data)
+        && shopAllowsPayment(request.resource.data);
+      allow read, update, delete: if isAdmin();
+    }
+
+        match /order_number_counters/{yearId} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create: if isAdmin() || (
+        request.resource.data.lastNumber is int
+        && ((yearId == '2026' && request.resource.data.lastNumber == 18)
+          || (yearId != '2026' && request.resource.data.lastNumber == 1))
+        && validPublicCounterLink(yearId, request.resource.data)
+      );
+      allow update: if isAdmin() || (
+        request.resource.data.lastNumber is int
+        && request.resource.data.lastNumber == resource.data.lastNumber + 1
+        && validPublicCounterLink(yearId, request.resource.data)
+      );
+      allow delete: if isAdmin();
+    }
+
+        match /order_tracking/{orderId} {
+      allow get: if validOrderNumber(orderId);
+      allow list: if isAdmin();
+      allow create: if request.resource.data.keys().hasOnly([
+          'orderNumber','status','orderType','productType','createdAt','paymentDeadlineHoursApplied','updatedAt'
+        ])
+        && request.resource.data.orderNumber == orderId && validOrderNumber(orderId)
+        && request.resource.data.status == 'received'
+        && request.resource.data.orderType in ['شراء','كراء']
+        && request.resource.data.productType in ['fullOutfit','shawlAndCap','shawlOnly']
+        && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time
+        && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.orderNumber == orderId
+        && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.status == 'received';
+      allow update, delete: if isAdmin();
+    }
+
+        match /tracking_phone_lookup/{phoneKey} {
+      allow read, write: if isAdmin();
+    }
+
+    match /group_orders/{groupOrderId} {
+      allow get, list: if isAdmin();
+      allow create: if validGroupOrder(request.resource.data, groupOrderId);
+      allow update, delete: if isAdmin();
+    }
+
+        match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+})
+        && counterData.reconciledWithSavedOrders == true && counterData.updatedAt == request.time
+        && order.orderNumber == orderNumber && order.orderSequenceNumber == counterData.lastNumber
+        && order.createdAt == request.time && order.status == 'received';
+    }
+
+    function validOrderCounterLink(data, orderId) {
+      let yearId = data.orderNumber.substring(3,7);
+      let counter = getAfter(/databases/$(database)/documents/order_number_counters/$(yearId)).data;
+      return data.orderSequenceNumber is int && counter.lastNumber == data.orderSequenceNumber
+        && counter.lastOrderNumber == orderId && counter.updatedAt == request.time;
+    }
+
+    function validGroupPrintingOption(option) {
+      let disabled = option.enabled == false && option.type == '' && option.text == '' && option.logoPath == null;
+      let textOnly = option.enabled == true && option.type == 'text' && option.text is string
+        && option.text.size() >= 1 && option.text.size() <= 500 && option.logoPath == null;
+      let logoOnly = option.enabled == true && option.type == 'logo' && option.text == '' && validHttpsUrl(option.logoPath);
+      let both = option.enabled == true && option.type == 'both' && option.text is string
+        && option.text.size() >= 1 && option.text.size() <= 500 && validHttpsUrl(option.logoPath);
+      return option is map && option.keys().hasOnly(['enabled','type','text','logoPath'])
+        && option.enabled is bool && option.type is string && option.text is string
+        && (disabled || textOnly || logoOnly || both);
+    }
+
+    function groupOrderShopAllows(orderType) {
+      let shop = exists(/databases/$(database)/documents/settings/shop)
+        ? get(/databases/$(database)/documents/settings/shop).data : {};
+      return orderType in ['شراء','كراء']
+        && (!shop.keys().hasAny(['acceptingOrders']) || shop.acceptingOrders == true)
+        && (!shop.keys().hasAny(['maintenanceMode']) || shop.maintenanceMode == false)
+        && ((orderType == 'شراء' && (!shop.keys().hasAny(['purchaseEnabled']) || shop.purchaseEnabled == true))
+          || (orderType == 'كراء' && (!shop.keys().hasAny(['rentalEnabled']) || shop.rentalEnabled == true)));
+    }
+
+    function validGroupOrder(data, orderId) {
+      let purchase = data.orderType == 'شراء';
+      let rental = data.orderType == 'كراء';
+      let purchaseMembers = data.members is list && data.members.size() <= 100
+        && ((data.membersExcelUrl is string && validHttpsUrl(data.membersExcelUrl)
+          && data.membersExcelName is string && data.membersExcelName.size() >= 1
+          && data.membersExcelName.size() <= 180 && data.members.size() == 0)
+          || (data.membersExcelUrl == null && data.membersExcelName == null
+            && data.members.size() == data.quantity && data.members.size() >= 5));
+      let rentalMembers = data.members is list && data.members.size() == 0
+        && data.membersExcelUrl == null && data.membersExcelName == null;
+      let purchaseOptions = data.productType in ['fullOutfit','shawlAndCap']
+        && validGroupPrintingOption(data.rightShawl) && validGroupPrintingOption(data.leftShawl)
+        && validGroupPrintingOption(data.backShawl) && validGroupPrintingOption(data.cap)
+        && data.referenceImages is list && data.referenceImages.size() <= 8;
+      let rentalOptions = data.productType == 'fullOutfit'
+        && validGroupPrintingOption(data.rightShawl) && data.rightShawl.enabled == false
+        && validGroupPrintingOption(data.leftShawl) && data.leftShawl.enabled == false
+        && validGroupPrintingOption(data.backShawl) && data.backShawl.enabled == false
+        && validGroupPrintingOption(data.cap) && data.cap.enabled == false
+        && data.referenceImages is list && data.referenceImages.size() == 0;
+      let validAddress = data.deliveryMethod == 'pickup' ? data.address == ''
+        : data.address is string && data.address.size() >= 3 && data.address.size() <= 500;
+      let validSchedule = data.scheduledAt is timestamp && data.scheduledAt >= request.time + duration.value(24,'h')
+        && ((purchase && data.returnAt == null)
+          || (rental && data.returnAt is timestamp && data.returnAt == data.scheduledAt + duration.value(24,'h')));
+      return data.keys().hasOnly([
+          'groupOrderNumber','orderType','quantity','responsibleName','phoneNumber','city','deliveryMethod',
+          'address','scheduledAt','returnAt','members','membersExcelUrl','membersExcelName','productType',
+          'rightShawl','leftShawl','backShawl','cap','referenceImages','customizationScope','notes','status',
+          'createdAt','updatedAt'
+        ])
+        && data.groupOrderNumber == orderId && orderId.matches('^GRP-[0-9]{4}-[A-HJ-NP-Z2-9]{8}
+      allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /delivery_settings/{documentId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /settings/shop {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /settings/order_rules {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /settings/notification_rules {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow create: if request.resource.data.orderNumber == orderId
+          && validOrderNumber(orderId)
+          && request.resource.data.status == 'received'
+          && request.resource.data.trackingPhoneKey is string
+          && request.resource.data.orderType is string
+          && request.resource.data.urgentOrder is bool
+          && validOrderContent(request.resource.data)
+          && shopAllowsNewOrder(request.resource.data.orderType)
+          && orderRulesAllowSchedule(request.resource.data)
+          && validOrderAmounts(request.resource.data)
+          && shopAllowsPayment(request.resource.data);
+
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /order_number_counters/{yearId} {
+      allow get: if true;
+      allow list: if isAdmin();
+
+      allow create: if request.resource.data.keys().hasOnly([
+            'lastNumber',
+            'reconciledWithSavedOrders',
+            'updatedAt'
+          ])
+          && request.resource.data.lastNumber is int
+          && request.resource.data.reconciledWithSavedOrders == true
+          && (
+            (yearId == '2026' && request.resource.data.lastNumber == 18)
+            ||
+            (yearId != '2026' && request.resource.data.lastNumber == 1)
+          );
+
+      allow update: if request.resource.data.keys().hasOnly([
+            'lastNumber',
+            'reconciledWithSavedOrders',
+            'updatedAt'
+          ])
+          && request.resource.data.lastNumber is int
+          && request.resource.data.lastNumber == resource.data.lastNumber + 1
+          && request.resource.data.reconciledWithSavedOrders == true;
+
+      allow delete: if isAdmin();
+    }
+
+    match /order_tracking/{orderId} {
+      allow get: if true;
+      allow list: if isAdmin();
+
+      allow create: if request.resource.data.keys().hasOnly([
+            'orderNumber',
+            'status',
+            'orderType',
+            'productType',
+            'createdAt',
+            'paymentDeadlineHoursApplied',
+            'updatedAt'
+          ])
+          && request.resource.data.orderNumber == orderId
+          && validOrderNumber(orderId)
+          && request.resource.data.status == 'received'
+          && request.resource.data.orderType in ['شراء', 'كراء']
+          && request.resource.data.productType in [
+            'fullOutfit',
+            'shawlAndCap',
+            'shawlOnly'
+          ]
+          && request.resource.data.createdAt is timestamp;
+
+      allow update, delete: if isAdmin();
+    }
+
+    match /tracking_phone_lookup/{phoneKey} {
+      allow get: if true;
+      allow list: if isAdmin();
+
+      allow create: if request.resource.data.keys().hasOnly([
+            'orderNumber',
+            'latestOrderNumber',
+            'orderNumbers',
+            'updatedAt'
+          ])
+          && phoneKey.matches('^(05|06|07)[0-9]{8}$')
+          && request.resource.data.orderNumbers is list
+          && request.resource.data.orderNumbers.size() == 1
+          && request.resource.data.orderNumber ==
+              request.resource.data.latestOrderNumber
+          && request.resource.data.orderNumbers[0] ==
+              request.resource.data.latestOrderNumber
+          && validOrderNumber(request.resource.data.latestOrderNumber)
+          && request.resource.data.updatedAt is timestamp
+          && getAfter(
+            /databases/$(database)/documents/orders/$(request.resource.data.latestOrderNumber)
+          ).data.trackingPhoneKey == phoneKey;
+
+      allow update: if isAdmin() || (
+          request.resource.data.keys().hasOnly([
+            'orderNumber',
+            'latestOrderNumber',
+            'orderNumbers',
+            'updatedAt'
+          ])
+          && phoneKey.matches('^(05|06|07)[0-9]{8}$')
+          && request.resource.data.orderNumbers is list
+          && request.resource.data.orderNumber ==
+              request.resource.data.latestOrderNumber
+          && validOrderNumber(request.resource.data.latestOrderNumber)
+          && request.resource.data.updatedAt is timestamp
+          && (
+            (
+              resource.data.keys().hasAny(['orderNumbers'])
+              && resource.data.orderNumbers is list
+              && request.resource.data.orderNumbers.size() ==
+                  resource.data.orderNumbers.size() + 1
+              && request.resource.data.orderNumbers.hasAll(
+                  resource.data.orderNumbers
+                )
+              && !resource.data.orderNumbers.hasAny([
+                  request.resource.data.latestOrderNumber
+                ])
+            )
+            || (
+              !resource.data.keys().hasAny(['orderNumbers'])
+              && validOrderNumber(resource.data.orderNumber)
+              && request.resource.data.orderNumbers.size() == 2
+              && request.resource.data.orderNumbers.hasAll([
+                  resource.data.orderNumber,
+                  request.resource.data.latestOrderNumber
+                ])
+              && resource.data.orderNumber !=
+                  request.resource.data.latestOrderNumber
+            )
+          )
+          && request.resource.data.orderNumbers.hasAny([
+              request.resource.data.latestOrderNumber
+            ])
+          && getAfter(
+            /databases/$(database)/documents/orders/$(request.resource.data.latestOrderNumber)
+          ).data.trackingPhoneKey == phoneKey
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+})
+        && data.orderType in ['شراء','كراء'] && data.quantity is int && data.quantity >= 5 && data.quantity <= 100
+        && data.responsibleName is string && data.responsibleName.size() >= 3 && data.responsibleName.size() <= 120
+        && data.phoneNumber is string && data.phoneNumber.matches('^(05|06|07)[0-9]{8}
+      allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /delivery_settings/{documentId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /settings/shop {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /settings/order_rules {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /settings/notification_rules {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow create: if request.resource.data.orderNumber == orderId
+          && validOrderNumber(orderId)
+          && request.resource.data.status == 'received'
+          && request.resource.data.trackingPhoneKey is string
+          && request.resource.data.orderType is string
+          && request.resource.data.urgentOrder is bool
+          && validOrderContent(request.resource.data)
+          && shopAllowsNewOrder(request.resource.data.orderType)
+          && orderRulesAllowSchedule(request.resource.data)
+          && validOrderAmounts(request.resource.data)
+          && shopAllowsPayment(request.resource.data);
+
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /order_number_counters/{yearId} {
+      allow get: if true;
+      allow list: if isAdmin();
+
+      allow create: if request.resource.data.keys().hasOnly([
+            'lastNumber',
+            'reconciledWithSavedOrders',
+            'updatedAt'
+          ])
+          && request.resource.data.lastNumber is int
+          && request.resource.data.reconciledWithSavedOrders == true
+          && (
+            (yearId == '2026' && request.resource.data.lastNumber == 18)
+            ||
+            (yearId != '2026' && request.resource.data.lastNumber == 1)
+          );
+
+      allow update: if request.resource.data.keys().hasOnly([
+            'lastNumber',
+            'reconciledWithSavedOrders',
+            'updatedAt'
+          ])
+          && request.resource.data.lastNumber is int
+          && request.resource.data.lastNumber == resource.data.lastNumber + 1
+          && request.resource.data.reconciledWithSavedOrders == true;
+
+      allow delete: if isAdmin();
+    }
+
+    match /order_tracking/{orderId} {
+      allow get: if true;
+      allow list: if isAdmin();
+
+      allow create: if request.resource.data.keys().hasOnly([
+            'orderNumber',
+            'status',
+            'orderType',
+            'productType',
+            'createdAt',
+            'paymentDeadlineHoursApplied',
+            'updatedAt'
+          ])
+          && request.resource.data.orderNumber == orderId
+          && validOrderNumber(orderId)
+          && request.resource.data.status == 'received'
+          && request.resource.data.orderType in ['شراء', 'كراء']
+          && request.resource.data.productType in [
+            'fullOutfit',
+            'shawlAndCap',
+            'shawlOnly'
+          ]
+          && request.resource.data.createdAt is timestamp;
+
+      allow update, delete: if isAdmin();
+    }
+
+    match /tracking_phone_lookup/{phoneKey} {
+      allow get: if true;
+      allow list: if isAdmin();
+
+      allow create: if request.resource.data.keys().hasOnly([
+            'orderNumber',
+            'latestOrderNumber',
+            'orderNumbers',
+            'updatedAt'
+          ])
+          && phoneKey.matches('^(05|06|07)[0-9]{8}$')
+          && request.resource.data.orderNumbers is list
+          && request.resource.data.orderNumbers.size() == 1
+          && request.resource.data.orderNumber ==
+              request.resource.data.latestOrderNumber
+          && request.resource.data.orderNumbers[0] ==
+              request.resource.data.latestOrderNumber
+          && validOrderNumber(request.resource.data.latestOrderNumber)
+          && request.resource.data.updatedAt is timestamp
+          && getAfter(
+            /databases/$(database)/documents/orders/$(request.resource.data.latestOrderNumber)
+          ).data.trackingPhoneKey == phoneKey;
+
+      allow update: if isAdmin() || (
+          request.resource.data.keys().hasOnly([
+            'orderNumber',
+            'latestOrderNumber',
+            'orderNumbers',
+            'updatedAt'
+          ])
+          && phoneKey.matches('^(05|06|07)[0-9]{8}$')
+          && request.resource.data.orderNumbers is list
+          && request.resource.data.orderNumber ==
+              request.resource.data.latestOrderNumber
+          && validOrderNumber(request.resource.data.latestOrderNumber)
+          && request.resource.data.updatedAt is timestamp
+          && (
+            (
+              resource.data.keys().hasAny(['orderNumbers'])
+              && resource.data.orderNumbers is list
+              && request.resource.data.orderNumbers.size() ==
+                  resource.data.orderNumbers.size() + 1
+              && request.resource.data.orderNumbers.hasAll(
+                  resource.data.orderNumbers
+                )
+              && !resource.data.orderNumbers.hasAny([
+                  request.resource.data.latestOrderNumber
+                ])
+            )
+            || (
+              !resource.data.keys().hasAny(['orderNumbers'])
+              && validOrderNumber(resource.data.orderNumber)
+              && request.resource.data.orderNumbers.size() == 2
+              && request.resource.data.orderNumbers.hasAll([
+                  resource.data.orderNumber,
+                  request.resource.data.latestOrderNumber
+                ])
+              && resource.data.orderNumber !=
+                  request.resource.data.latestOrderNumber
+            )
+          )
+          && request.resource.data.orderNumbers.hasAny([
+              request.resource.data.latestOrderNumber
+            ])
+          && getAfter(
+            /databases/$(database)/documents/orders/$(request.resource.data.latestOrderNumber)
+          ).data.trackingPhoneKey == phoneKey
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+})
+        && data.city is string && data.city.size() >= 1 && data.city.size() <= 80
+        && data.deliveryMethod in ['homeDelivery','pickup'] && validAddress && validSchedule
+        && ((purchase && purchaseMembers && purchaseOptions) || (rental && rentalMembers && rentalOptions))
+        && data.customizationScope == 'shared_group_design'
+        && data.notes is string && data.notes.size() <= 1000 && data.status == 'received'
+        && data.createdAt == request.time && data.updatedAt == request.time
+        && groupOrderShopAllows(data.orderType);
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /delivery_settings/{documentId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /settings/shop {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /settings/order_rules {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /settings/notification_rules {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow create: if request.resource.data.orderNumber == orderId
+          && validOrderNumber(orderId)
+          && request.resource.data.status == 'received'
+          && request.resource.data.trackingPhoneKey is string
+          && request.resource.data.orderType is string
+          && request.resource.data.urgentOrder is bool
+          && validOrderContent(request.resource.data)
+          && shopAllowsNewOrder(request.resource.data.orderType)
+          && orderRulesAllowSchedule(request.resource.data)
+          && validOrderAmounts(request.resource.data)
+          && shopAllowsPayment(request.resource.data);
+
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /order_number_counters/{yearId} {
+      allow get: if true;
+      allow list: if isAdmin();
+
+      allow create: if request.resource.data.keys().hasOnly([
+            'lastNumber',
+            'reconciledWithSavedOrders',
+            'updatedAt'
+          ])
+          && request.resource.data.lastNumber is int
+          && request.resource.data.reconciledWithSavedOrders == true
+          && (
+            (yearId == '2026' && request.resource.data.lastNumber == 18)
+            ||
+            (yearId != '2026' && request.resource.data.lastNumber == 1)
+          );
+
+      allow update: if request.resource.data.keys().hasOnly([
+            'lastNumber',
+            'reconciledWithSavedOrders',
+            'updatedAt'
+          ])
+          && request.resource.data.lastNumber is int
+          && request.resource.data.lastNumber == resource.data.lastNumber + 1
+          && request.resource.data.reconciledWithSavedOrders == true;
+
+      allow delete: if isAdmin();
+    }
+
+    match /order_tracking/{orderId} {
+      allow get: if true;
+      allow list: if isAdmin();
+
+      allow create: if request.resource.data.keys().hasOnly([
+            'orderNumber',
+            'status',
+            'orderType',
+            'productType',
+            'createdAt',
+            'paymentDeadlineHoursApplied',
+            'updatedAt'
+          ])
+          && request.resource.data.orderNumber == orderId
+          && validOrderNumber(orderId)
+          && request.resource.data.status == 'received'
+          && request.resource.data.orderType in ['شراء', 'كراء']
+          && request.resource.data.productType in [
+            'fullOutfit',
+            'shawlAndCap',
+            'shawlOnly'
+          ]
+          && request.resource.data.createdAt is timestamp;
+
+      allow update, delete: if isAdmin();
+    }
+
+    match /tracking_phone_lookup/{phoneKey} {
+      allow get: if true;
+      allow list: if isAdmin();
+
+      allow create: if request.resource.data.keys().hasOnly([
+            'orderNumber',
+            'latestOrderNumber',
+            'orderNumbers',
+            'updatedAt'
+          ])
+          && phoneKey.matches('^(05|06|07)[0-9]{8}$')
+          && request.resource.data.orderNumbers is list
+          && request.resource.data.orderNumbers.size() == 1
+          && request.resource.data.orderNumber ==
+              request.resource.data.latestOrderNumber
+          && request.resource.data.orderNumbers[0] ==
+              request.resource.data.latestOrderNumber
+          && validOrderNumber(request.resource.data.latestOrderNumber)
+          && request.resource.data.updatedAt is timestamp
+          && getAfter(
+            /databases/$(database)/documents/orders/$(request.resource.data.latestOrderNumber)
+          ).data.trackingPhoneKey == phoneKey;
+
+      allow update: if isAdmin() || (
+          request.resource.data.keys().hasOnly([
+            'orderNumber',
+            'latestOrderNumber',
+            'orderNumbers',
+            'updatedAt'
+          ])
+          && phoneKey.matches('^(05|06|07)[0-9]{8}$')
+          && request.resource.data.orderNumbers is list
+          && request.resource.data.orderNumber ==
+              request.resource.data.latestOrderNumber
+          && validOrderNumber(request.resource.data.latestOrderNumber)
+          && request.resource.data.updatedAt is timestamp
+          && (
+            (
+              resource.data.keys().hasAny(['orderNumbers'])
+              && resource.data.orderNumbers is list
+              && request.resource.data.orderNumbers.size() ==
+                  resource.data.orderNumbers.size() + 1
+              && request.resource.data.orderNumbers.hasAll(
+                  resource.data.orderNumbers
+                )
+              && !resource.data.orderNumbers.hasAny([
+                  request.resource.data.latestOrderNumber
+                ])
+            )
+            || (
+              !resource.data.keys().hasAny(['orderNumbers'])
+              && validOrderNumber(resource.data.orderNumber)
+              && request.resource.data.orderNumbers.size() == 2
+              && request.resource.data.orderNumbers.hasAll([
+                  resource.data.orderNumber,
+                  request.resource.data.latestOrderNumber
+                ])
+              && resource.data.orderNumber !=
+                  request.resource.data.latestOrderNumber
+            )
+          )
+          && request.resource.data.orderNumbers.hasAny([
+              request.resource.data.latestOrderNumber
+            ])
+          && getAfter(
+            /databases/$(database)/documents/orders/$(request.resource.data.latestOrderNumber)
+          ).data.trackingPhoneKey == phoneKey
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
