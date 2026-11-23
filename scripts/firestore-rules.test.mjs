@@ -11,6 +11,7 @@ import {
   getDocs,
   serverTimestamp,
   setDoc,
+  runTransaction,
   Timestamp,
 } from "firebase/firestore";
 
@@ -130,6 +131,175 @@ try {
     rightShawl: { enabled: false, type: "logo", text: "", logoPath: "https://example.com/logo.png" },
   });
   await assertFails(setDoc(rentalHiddenPayloadRef, rentalHiddenPayloadOrder));
+
+
+  // Seed the public catalog and configuration used by individual-order validation.
+  await env.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, "products", "test-full-outfit"), {
+      productType: "fullOutfit",
+      active: true,
+      purchaseSatin: 500,
+      purchaseMoubara: 600,
+      rentalSatin: 120,
+      rentalMoubara: 150,
+    });
+    await setDoc(doc(db, "settings", "shop"), {
+      acceptingOrders: true,
+      maintenanceMode: false,
+      purchaseEnabled: true,
+      rentalEnabled: true,
+      cashAtStoreEnabled: true,
+      bankTransferEnabled: true,
+      cashTransferAgencyEnabled: true,
+      depositPaymentEnabled: true,
+      fullPaymentEnabled: true,
+      paymentDeadlineHours: 48,
+      depositPercentage: 50,
+      rentalSecurityDepositSatin: 250,
+      rentalSecurityDepositMoubara: 300,
+    });
+    await setDoc(doc(db, "settings", "order_rules"), {
+      purchasePreparationDays: 2,
+      rentalAdvanceHours: 24,
+      urgentOrdersEnabled: false,
+      urgentMinimumHours: 12,
+    });
+  });
+
+  const individualScheduledAt = Timestamp.fromMillis(Date.now() + 4 * 24 * 60 * 60 * 1000);
+  const individualBase = {
+    orderNumber: "GM-2026-000018",
+    orderYear: "2026",
+    orderSequenceNumber: 18,
+    status: "received",
+    paymentStatus: "pending",
+    paymentMethod: "cash_at_store",
+    bankTransferPlan: "",
+    paymentProvider: "",
+    paymentDeadline: null,
+    totalPrice: 500,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    gender: "ذكر",
+    orderType: "شراء",
+    productType: "fullOutfit",
+    catalogProductId: "test-full-outfit",
+    catalogProductNameAr: "بدلة تخرج",
+    catalogProductNameEn: "",
+    fabric: "ساتان",
+    shawlColor: "أبيض",
+    notes: "",
+    deliveryMethod: "pickup",
+    fullName: "Test Customer",
+    phoneNumber: "0612345678",
+    city: "Fes",
+    address: "",
+    deliveryNotes: "",
+    deliveryDate: "2026-11-28",
+    deliveryTime: "12:00",
+    returnDate: null,
+    returnTime: "",
+    urgentOrder: false,
+    deliveryFee: 0,
+    fesArea: null,
+    rightShawl: disabled,
+    leftShawl: disabled,
+    backShawl: disabled,
+    cap: disabled,
+    referenceImages: [],
+    productPriceApplied: 500,
+    deliveryFeeApplied: 0,
+    deliveryPricingDocumentId: "",
+    amountPaid: 0,
+    remainingAmount: 500,
+    trackingPhoneKey: "0612345678",
+    scheduledAt: individualScheduledAt,
+    purchasePreparationDaysApplied: 2,
+    rentalAdvanceHoursApplied: 24,
+    scheduleTimeZone: "Africa/Casablanca",
+  };
+
+  async function submitIndividualOrder(sequence, overrides = {}) {
+    const orderNumber = `GM-2026-${String(sequence).padStart(6, "0")}`;
+    const orderData = {
+      ...individualBase,
+      orderNumber,
+      orderSequenceNumber: sequence,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      ...overrides,
+    };
+    const counterRef = doc(publicDb, "order_number_counters", "2026");
+    const orderRef = doc(publicDb, "orders", orderNumber);
+    const trackingRef = doc(publicDb, "order_tracking", orderNumber);
+    await runTransaction(publicDb, async (transaction) => {
+      const counter = await transaction.get(counterRef);
+      transaction.set(counterRef, {
+        lastNumber: sequence,
+        lastOrderNumber: orderNumber,
+        reconciledWithSavedOrders: true,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+      transaction.set(orderRef, orderData);
+      transaction.set(trackingRef, {
+        orderNumber,
+        status: "received",
+        orderType: orderData.orderType,
+        productType: orderData.productType,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        ...(orderData.paymentMethod !== "cash_at_store"
+          ? { paymentDeadlineHoursApplied: 48 } : {}),
+      });
+    });
+  }
+
+  await assertSucceeds(submitIndividualOrder(18));
+
+  await assertFails(submitIndividualOrder(19, {
+    totalPrice: 1,
+    remainingAmount: 1,
+  }));
+
+  const bankPurchase = {
+    paymentMethod: "bank_transfer",
+    bankTransferPlan: "deposit",
+    paymentDeadlineHoursApplied: 48,
+    paymentDeadlineTimeZone: "Africa/Casablanca",
+    depositPercentageApplied: 50,
+    depositRequiredAmount: 250,
+  };
+  await assertSucceeds(submitIndividualOrder(19, bankPurchase));
+
+  const rentalOrder = {
+    orderType: "كراء",
+    totalPrice: 120,
+    productPriceApplied: 120,
+    remainingAmount: 120,
+    paymentMethod: "bank_transfer",
+    bankTransferPlan: "",
+    returnAt: Timestamp.fromMillis(individualScheduledAt.toMillis() + 24 * 60 * 60 * 1000),
+    returnDate: "2026-11-29",
+    returnTime: "12:00",
+    rentalFeeAmount: 120,
+    rentalSecurityDepositAmount: 250,
+    rentalDepositCollectedAmount: 0,
+    rentalDepositStatus: "pending",
+    rentalReturnStatus: "awaiting_return",
+    rentalDamageDeduction: 0,
+    rentalRefundAmount: null,
+    rentalAdditionalDamageDue: 0,
+    rentalSettlementStatus: "pending",
+    paymentDeadlineHoursApplied: 48,
+    paymentDeadlineTimeZone: "Africa/Casablanca",
+  };
+  await assertSucceeds(submitIndividualOrder(20, rentalOrder));
+
+  await assertFails(submitIndividualOrder(21, {
+    ...rentalOrder,
+    rentalSecurityDepositAmount: 1,
+  }));
 
   await assertSucceeds(getDoc(doc(publicDb, "order_tracking", "GM-2026-000018")));
   await assertFails(getDoc(doc(publicDb, "order_tracking", "not-an-order-number")));
