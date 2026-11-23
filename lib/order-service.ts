@@ -299,6 +299,7 @@ export async function submitOrder(args: {
 
     const orderData: Record<string, unknown> = {
       orderNumber: number,
+      orderYear: String(year),
       orderSequenceNumber: next,
       status: "received",
       paymentStatus: "pending",
