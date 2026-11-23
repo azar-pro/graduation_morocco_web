@@ -570,10 +570,24 @@ service cloud.firestore {
         && ((purchase && data.returnAt == null)
           || (rental && data.returnAt is timestamp
             && data.returnAt == data.scheduledAt + duration.value(24,'h')));
-      return !data.keys().hasAny([
-          'totalPrice','amountPaid','remainingAmount','paymentStatus','paymentMethod',
-          'rentalSecurityDepositAmount','role','active','admin','trackingPhoneKey'
+      let rentalOptionsDisabled = rental
+        && data.rightShawl.enabled == false && data.leftShawl.enabled == false
+        && data.backShawl.enabled == false && data.cap.enabled == false;
+      let purchaseOptionsValid = purchase
+        && validGroupPrintingOption(data.rightShawl)
+        && validGroupPrintingOption(data.leftShawl)
+        && validGroupPrintingOption(data.backShawl)
+        && validGroupPrintingOption(data.cap)
+        && validGroupReferenceImages(data.referenceImages);
+      let rentalCustomizationEmpty = rentalOptionsDisabled
+        && data.referenceImages is list && data.referenceImages.size() == 0;
+      return data.keys().hasOnly([
+          'groupOrderNumber','orderType','quantity','responsibleName','phoneNumber','city',
+          'deliveryMethod','address','scheduledAt','returnAt','members','membersExcelUrl',
+          'membersExcelName','productType','rightShawl','leftShawl','backShawl','cap',
+          'referenceImages','customizationScope','notes','status','createdAt','updatedAt'
         ])
+        && (purchaseOptionsValid || rentalCustomizationEmpty)
         && data.groupOrderNumber == orderId
         && orderId.matches('^GRP-[0-9]{4}-[A-HJ-NP-Z2-9]{8}$')
         && (purchase || rental)
