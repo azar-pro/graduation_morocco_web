@@ -120,6 +120,17 @@ try {
   });
   await assertFails(setDoc(rentalPrintingRef, rentalPrintingOrder));
 
+  const [rentalHiddenPayloadRef, rentalHiddenPayloadOrder] = groupDoc("ABCDEFGJ", {
+    orderType: "كراء",
+    returnAt: Timestamp.fromMillis(scheduledAt.toMillis() + 24 * 60 * 60 * 1000),
+    members: [],
+    membersExcelUrl: null,
+    membersExcelName: null,
+    productType: "fullOutfit",
+    rightShawl: { enabled: false, type: "logo", text: "", logoPath: "https://example.com/logo.png" },
+  });
+  await assertFails(setDoc(rentalHiddenPayloadRef, rentalHiddenPayloadOrder));
+
   await assertSucceeds(getDoc(doc(publicDb, "order_tracking", "GM-2026-000018")));
   await assertFails(getDoc(doc(publicDb, "order_tracking", "not-an-order-number")));
   await assertFails(getDoc(doc(publicDb, "tracking_phone_lookup", "0612345678")));
