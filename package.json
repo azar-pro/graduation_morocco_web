@@ -24,7 +24,7 @@
     "eslint-config-next": "^16.0.0",
     "typescript": "^5.9.0",
     "@types/luxon": "^3.7.0",
-    "@firebase/rules-unit-testing": "^4.0.1",
+    "@firebase/rules-unit-testing": "^5.0.2",
     "firebase-tools": "^14.0.0"
   }
 }
