@@ -21,7 +21,7 @@ jobs:
           cache-dependency-path: package.json
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
 
       - name: Setup Java for Firebase Emulator
         uses: actions/setup-java@v4
