@@ -262,13 +262,9 @@ export async function submitOrder(args: {
   const year = DateTime.now().setZone(TZ).year;
 
   const counterRef = doc(db, "order_number_counters", String(year));
-  const phoneLookupRef = doc(db, "tracking_phone_lookup", normalized.phone);
 
   const orderNumber = await runTransaction(db, async (transaction) => {
-    const [counterSnap, phoneLookupSnap] = await Promise.all([
-      transaction.get(counterRef),
-      transaction.get(phoneLookupRef),
-    ]);
+    const counterSnap = await transaction.get(counterRef);
 
     const initial = year === 2026 ? 17 : 0;
     const stored = counterSnap.exists()
@@ -303,6 +299,7 @@ export async function submitOrder(args: {
 
     const orderData: Record<string, unknown> = {
       orderNumber: number,
+      orderSequenceNumber: next,
       status: "received",
       paymentStatus: "pending",
       paymentMethod: draft.paymentMethod,
@@ -376,6 +373,7 @@ export async function submitOrder(args: {
 
     transaction.set(counterRef, {
       lastNumber: next,
+      lastOrderNumber: number,
       reconciledWithSavedOrders: true,
       updatedAt: serverTimestamp(),
     }, { merge: true });
@@ -391,25 +389,7 @@ export async function submitOrder(args: {
       updatedAt: serverTimestamp(),
     });
 
-    const existing = phoneLookupSnap.exists() ? phoneLookupSnap.data() : {};
-    const previous = new Set<string>();
-    const raw = existing.orderNumbers;
-    if (Array.isArray(raw)) {
-      raw.forEach((x) => {
-        const value = String(x ?? "");
-        if (/^GM-[0-9]{4}-[0-9]{6}$/.test(value)) previous.add(value);
-      });
-    } else if (typeof existing.orderNumber === "string") {
-      previous.add(existing.orderNumber);
-    }
-    previous.add(number);
 
-    transaction.set(phoneLookupRef, {
-      orderNumber: number,
-      latestOrderNumber: number,
-      orderNumbers: [...previous],
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
 
     return number;
   }, { maxAttempts: 10 });
