@@ -573,11 +573,9 @@ service cloud.firestore {
       let validSchedule = data.scheduledAt is timestamp && data.scheduledAt >= request.time + duration.value(24,'h')
         && ((purchase && data.returnAt == null)
           || (rental && data.returnAt is timestamp && data.returnAt == data.scheduledAt + duration.value(24,'h')));
-      return data.keys().hasOnly([
-          'groupOrderNumber','orderType','quantity','responsibleName','phoneNumber','city','deliveryMethod',
-          'address','scheduledAt','returnAt','members','membersExcelUrl','membersExcelName','productType',
-          'rightShawl','leftShawl','backShawl','cap','referenceImages','customizationScope','notes','status',
-          'createdAt','updatedAt'
+      return !data.keys().hasAny([
+          'totalPrice','amountPaid','remainingAmount','paymentStatus','paymentMethod',
+          'rentalSecurityDepositAmount','role','active','admin','trackingPhoneKey'
         ])
         && data.groupOrderNumber == orderId && orderId.matches('^GRP-[0-9]{4}-[A-HJ-NP-Z2-9]{8}$')
         && data.orderType in ['شراء','كراء'] && data.quantity is int && data.quantity >= 5 && data.quantity <= 100
