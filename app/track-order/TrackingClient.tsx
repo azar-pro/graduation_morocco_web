@@ -38,17 +38,17 @@ export default function TrackingClient() {
   return (
     <>
       <form className="trackingForm" onSubmit={submit}>
-        <label htmlFor="tracking">رقم الطلب أو رقم الهاتف</label>
+        <label htmlFor="tracking">رقم الطلب</label>
         <input
           id="tracking"
           name="tracking"
           type="search"
           inputMode="search"
           autoComplete="off"
-          placeholder="GM-2026-000018 أو 06XXXXXXXX"
+          placeholder="GM-2026-000018"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          maxLength={24}
+          maxLength={15}
         />
         <button type="submit" disabled={loading}>
           {loading ? "جاري البحث…" : "بحث"}
