@@ -100,7 +100,7 @@ try {
   });
   await assertFails(setDoc(extraFieldRef, extraFieldOrder));
 
-  const [rentalRef, rentalOrder] = groupDoc("ABCDEFG9", {
+  const [rentalRef, groupRentalOrder] = groupDoc("ABCDEFG9", {
     orderType: "كراء",
     returnAt: Timestamp.fromMillis(scheduledAt.toMillis() + 24 * 60 * 60 * 1000),
     members: [],
@@ -108,7 +108,7 @@ try {
     membersExcelName: null,
     productType: "fullOutfit",
   });
-  await assertSucceeds(setDoc(rentalRef, rentalOrder));
+  await assertSucceeds(setDoc(rentalRef, groupRentalOrder));
 
   const [rentalPrintingRef, rentalPrintingOrder] = groupDoc("ABCDEFGH", {
     orderType: "كراء",
