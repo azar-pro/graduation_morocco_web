@@ -551,14 +551,16 @@ service cloud.firestore {
       let purchase = data.orderType == 'شراء';
       let rental = data.orderType == 'كراء';
       let validMembers = purchase
-        ? data.members is list && data.members.size() == data.quantity
-            && data.members.size() >= 5 && data.members.size() <= 100
-            && data.membersExcelUrl == null && data.membersExcelName == null
-          || (data.members is list && data.members.size() == 0
-            && validHttpsUrl(data.membersExcelUrl)
-            && data.membersExcelName is string
-            && data.membersExcelName.size() >= 1
-            && data.membersExcelName.size() <= 180)
+        ? (
+            (data.members is list && data.members.size() == data.quantity
+              && data.members.size() >= 5 && data.members.size() <= 100
+              && data.membersExcelUrl == null && data.membersExcelName == null)
+            || (data.members is list && data.members.size() == 0
+              && validHttpsUrl(data.membersExcelUrl)
+              && data.membersExcelName is string
+              && data.membersExcelName.size() >= 1
+              && data.membersExcelName.size() <= 180)
+          )
         : rental && data.members is list && data.members.size() == 0
             && data.membersExcelUrl == null && data.membersExcelName == null;
       let validProduct = (purchase && data.productType in ['fullOutfit','shawlAndCap'])
@@ -580,6 +582,10 @@ service cloud.firestore {
         && validGroupPrintingOption(data.cap)
         && validGroupReferenceImages(data.referenceImages);
       let rentalCustomizationEmpty = rentalOptionsDisabled
+        && data.rightShawl.type == '' && data.rightShawl.text == '' && data.rightShawl.logoPath == null
+        && data.leftShawl.type == '' && data.leftShawl.text == '' && data.leftShawl.logoPath == null
+        && data.backShawl.type == '' && data.backShawl.text == '' && data.backShawl.logoPath == null
+        && data.cap.type == '' && data.cap.text == '' && data.cap.logoPath == null
         && data.referenceImages is list && data.referenceImages.size() == 0;
       return data.keys().hasOnly([
           'groupOrderNumber','orderType','quantity','responsibleName','phoneNumber','city',
