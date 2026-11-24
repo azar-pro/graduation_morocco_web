@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  doc,
-  runTransaction,
-  serverTimestamp,
-  setDoc,
-  Timestamp,
-} from "firebase/firestore";
 import { DateTime } from "luxon";
-import { db } from "@/lib/firebase";
 import type {
   DeliveryCity,
   OrderRules,
@@ -255,146 +247,26 @@ export async function submitOrder(args: {
   shop: ShopSettings;
   rules: OrderRules;
 }) {
-  const { draft, products, cities, shop, rules } = args;
-  const quote = quoteOrder(products, cities, draft, shop);
-  const normalized = validateOrder(draft, shop, rules, quote);
-  const scheduled = normalized.scheduled;
-  const isProofPayment = draft.paymentMethod !== "cash_at_store";
-  const year = DateTime.now().setZone(TZ).year;
+  // Keep the immediate client-side feedback, but the server independently
+  // reloads trusted catalog/settings and recalculates every amount.
+  const quote = quoteOrder(args.products, args.cities, args.draft, args.shop);
+  validateOrder(args.draft, args.shop, args.rules, quote);
 
-  const counterRef = doc(db, "order_number_counters", String(year));
-
-  const orderNumber = await runTransaction(db, async (transaction) => {
-    const counterSnap = await transaction.get(counterRef);
-
-    const initial = year === 2026 ? 17 : 0;
-    const stored = counterSnap.exists()
-      ? Number(counterSnap.data().lastNumber ?? initial)
-      : initial;
-    const next = stored + 1;
-    const number = `GM-${year}-${String(next).padStart(6, "0")}`;
-
-    const orderRef = doc(db, "orders", number);
-
-    const returnAt = scheduled.plus({ hours: 24 });
-    const returnDate = draft.orderType === "كراء"
-      ? returnAt.setZone(TZ).toFormat("yyyy-MM-dd")
-      : null;
-    const returnTime = draft.orderType === "كراء"
-      ? returnAt.setZone(TZ).toFormat("HH:mm")
-      : "";
-
-    const deadlineHours = Math.max(1, Math.min(720, shop.paymentDeadlineHours));
-    const depositPercentage = Math.max(1, Math.min(100, shop.depositPercentage));
-    const depositAmount = draft.orderType === "شراء" && draft.bankTransferPlan === "deposit" && isProofPayment
-      ? quote.total * depositPercentage / 100
-      : null;
-
-    const rightShawl = draft.orderType === "شراء" ? normalizedPrinting(draft.rightShawl) : disabledPrinting();
-    const leftShawl = draft.orderType === "شراء" ? normalizedPrinting(draft.leftShawl) : disabledPrinting();
-    const backShawl = draft.orderType === "شراء" ? normalizedPrinting(draft.backShawl) : disabledPrinting();
-    const cap = draft.orderType === "شراء" && draft.productType !== "shawlOnly"
-      ? normalizedPrinting(draft.cap)
-      : disabledPrinting();
-
-    const orderData: Record<string, unknown> = {
-      orderNumber: number,
-      orderYear: String(year),
-      orderSequenceNumber: next,
-      status: "received",
-      paymentStatus: "pending",
-      paymentMethod: draft.paymentMethod,
-      bankTransferPlan: isProofPayment && draft.orderType === "شراء" ? draft.bankTransferPlan : "",
-      paymentProvider:
-        draft.paymentMethod === "cash_transfer_agency" ? draft.paymentProvider : "",
-      paymentDeadline: null,
-      totalPrice: quote.total,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      gender: draft.productType === "shawlOnly" ? "" : draft.gender,
-      orderType: draft.orderType,
-      productType: draft.productType,
-      catalogProductId: quote.product.id,
-      catalogProductNameAr: quote.product.nameAr,
-      catalogProductNameEn: quote.product.nameEn ?? "",
-      fabric: draft.fabric,
-      shawlColor: draft.shawlColor.trim(),
-      notes: draft.notes.trim(),
-      deliveryMethod: draft.deliveryMethod,
-      fullName: normalized.fullName,
-      phoneNumber: normalized.phone,
-      city: draft.city,
-      address: draft.deliveryMethod === "pickup" ? "" : normalized.address,
-      deliveryNotes: draft.deliveryNotes.trim(),
-      deliveryDate: draft.deliveryDate,
-      deliveryTime: draft.deliveryTime,
-      returnDate,
-      returnTime,
-      urgentOrder: false,
-      deliveryFee: quote.deliveryFee,
-      fesArea: null,
-      rightShawl,
-      leftShawl,
-      backShawl,
-      cap,
-      referenceImages: draft.orderType === "شراء" ? draft.referenceImages : [],
-      productPriceApplied: quote.productPrice,
-      deliveryFeeApplied: quote.deliveryFee,
-      deliveryPricingDocumentId: quote.deliveryDocumentId,
-      amountPaid: 0,
-      remainingAmount: quote.total,
-      trackingPhoneKey: normalized.phone,
-      scheduledAt: Timestamp.fromDate(scheduled.toUTC().toJSDate()),
-      purchasePreparationDaysApplied: rules.purchasePreparationDays,
-      rentalAdvanceHoursApplied: rules.rentalAdvanceHours,
-      scheduleTimeZone: TZ,
-    };
-
-    if (draft.orderType === "كراء") {
-      orderData.returnAt = Timestamp.fromDate(returnAt.toUTC().toJSDate());
-      orderData.rentalFeeAmount = quote.productPrice;
-      orderData.rentalSecurityDepositAmount = quote.rentalSecurityDeposit;
-      orderData.rentalDepositCollectedAmount = 0;
-      orderData.rentalDepositStatus = "pending";
-      orderData.rentalReturnStatus = "awaiting_return";
-      orderData.rentalDamageDeduction = 0;
-      orderData.rentalRefundAmount = null;
-      orderData.rentalAdditionalDamageDue = 0;
-      orderData.rentalSettlementStatus = "pending";
-    }
-
-    if (isProofPayment) {
-      orderData.paymentDeadlineHoursApplied = deadlineHours;
-      orderData.paymentDeadlineTimeZone = TZ;
-      if (draft.orderType === "شراء" && draft.bankTransferPlan === "deposit") {
-        orderData.depositPercentageApplied = depositPercentage;
-        orderData.depositRequiredAmount = depositAmount;
-      }
-    }
-
-    transaction.set(counterRef, {
-      lastNumber: next,
-      lastOrderNumber: number,
-      reconciledWithSavedOrders: true,
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
-
-    transaction.set(orderRef, orderData);
-    return { number, deadlineHours };
-  }, { maxAttempts: 10 });
-
-  // Keep the order number and order document atomic. Tracking is a separate
-  // small write so its rule evaluation does not consume the order transaction
-  // expression budget.
-  await setDoc(doc(db, "order_tracking", orderNumber.number), {
-    orderNumber: orderNumber.number,
-    status: "received",
-    orderType: draft.orderType,
-    productType: draft.productType,
-    createdAt: serverTimestamp(),
-    ...(isProofPayment ? { paymentDeadlineHoursApplied: orderNumber.deadlineHours } : {}),
-    updatedAt: serverTimestamp(),
+  const response = await fetch("/api/orders", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ draft: args.draft }),
   });
-
-  return { orderNumber: orderNumber.number, quote };
+  const payload = await response.json().catch(() => ({})) as {
+    orderNumber?: string;
+    error?: string;
+    quote?: Partial<OrderQuote>;
+  };
+  if (!response.ok || !payload.orderNumber) {
+    throw new Error(payload.error || "تعذر إرسال الطلب.");
+  }
+  return {
+    orderNumber: payload.orderNumber,
+    quote: { ...quote, ...payload.quote },
+  };
 }
