@@ -164,8 +164,18 @@ function AdminGroupOrderDetailContent(){
 
           {String(order.orderType)==="كراء" && (
             <section className="adminDetailCard">
-              <h2>تفاصيل الكراء</h2>
-              <p>هذا الطلب لا يحتوي أسماء أفراد أو تخصيص طباعة أو صور مرجعية، والعودة بعد 24 ساعة من موعد الاستلام وفق قواعد الطلب الحالية.</p>
+              <h2>تفاصيل الكراء والضمان</h2>
+              <dl>
+                <div><dt>القماش</dt><dd>{value(order.fabric)}</dd></div>
+                <div><dt>لون الوشاح</dt><dd>{value(order.shawlColor)}</dd></div>
+                <div><dt>ثمن الكراء للبدلة الواحدة</dt><dd>{Number(order.unitPriceApplied??0)} درهم</dd></div>
+                <div><dt>مجموع ثمن الكراء</dt><dd>{Number(order.rentalFeeAmount??order.productTotalEstimate??0)} درهم</dd></div>
+                <div><dt>الضمان للبدلة الواحدة</dt><dd>{Number(order.rentalSecurityDepositUnit??0)} درهم</dd></div>
+                <div><dt>مجموع ضمان المجموعة</dt><dd>{Number(order.rentalSecurityDepositAmount??0)} درهم</dd></div>
+                <div><dt>حالة استلام الضمان</dt><dd>{value(order.rentalDepositStatus)==="pending"?"لم يتم تسجيل الاستلام":value(order.rentalDepositStatus)}</dd></div>
+                <div><dt>حالة الإرجاع</dt><dd>{value(order.rentalReturnStatus)}</dd></div>
+              </dl>
+              <p>يُخصم مجموع ثمن الكراء وأي تعويض عن الضرر من الضمان بعد إرجاع المجموعة، ثم يُعاد المتبقي. يلزم استكمال إجراء تسجيل الاستلام وتسوية الإرجاع من لوحة الإدارة.</p>
             </section>
           )}
         </main>
