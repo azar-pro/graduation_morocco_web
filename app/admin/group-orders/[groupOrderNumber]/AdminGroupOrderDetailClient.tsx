@@ -175,7 +175,10 @@ function AdminGroupOrderDetailContent(){
                 <div><dt>مجموع ثمن الكراء</dt><dd>{Number(order.rentalFeeAmount??order.productTotalEstimate??0)} درهم</dd></div>
                 <div><dt>الضمان للبدلة الواحدة</dt><dd>{Number(order.rentalSecurityDepositUnit??0)} درهم</dd></div>
                 <div><dt>مجموع ضمان المجموعة</dt><dd>{Number(order.rentalSecurityDepositAmount??0)} درهم</dd></div>
+                <div><dt>رسوم التوصيل</dt><dd>{Number(order.deliveryFeeApplied??0)} درهم</dd></div>
+                <div><dt>المبلغ المطلوب عند الاستلام</dt><dd>{Number(order.amountDueNowEstimate??(Number(order.rentalSecurityDepositAmount??0)+Number(order.deliveryFeeApplied??0)))} درهم</dd></div>
                 <div><dt>حالة استلام الضمان</dt><dd>{value(order.rentalDepositStatus)==="pending"?"لم يتم تسجيل الاستلام":value(order.rentalDepositStatus)}</dd></div>
+                {order.rentalDepositStatus==="collected" && <div><dt>المبلغ المسجل استلامه</dt><dd>{Number(order.rentalDepositCollectedAmount??0)+Number(order.rentalDeliveryFeeCollectedAmount??0)} درهم</dd></div>}
                 <div><dt>حالة الإرجاع</dt><dd>{value(order.rentalReturnStatus)}</dd></div>
               </dl>
               <p>يُخصم مجموع ثمن الكراء وأي تعويض عن الضرر من الضمان بعد إرجاع المجموعة، ثم يُعاد المتبقي.</p>
