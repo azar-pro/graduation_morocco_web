@@ -76,6 +76,45 @@ export async function POST(request: Request) {
     const backShawl = isPurchase ? printing(draft.backShawl) : disabled();
     const cap = isPurchase ? printing(draft.cap) : disabled();
     const db = getAdminFirestore();
+    if (draft.fabric !== "ساتان" && draft.fabric !== "موبرة") throw new Error("اختر نوع القماش.");
+    const shawlColor = String(draft.shawlColor ?? "").trim();
+    if (!shawlColor || shawlColor.length > 80) throw new Error("أدخل لون الوشاح بشكل صحيح.");
+    const [productsSnap, citiesSnap, rulesSnap] = await Promise.all([
+      db.collection("products").get(), db.collection("delivery_settings").get(), db.doc("settings/order_rules").get(),
+    ]);
+    const product = productsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+      .find((item) => item.productType === (draft.orderType === "كراء" ? "fullOutfit" : draft.productType) && item.active !== false);
+    if (!product) throw new Error("المنتج المحدد غير متاح حاليًا.");
+    const baseUnitPrice = draft.orderType === "شراء"
+      ? (draft.fabric === "ساتان" ? Number(product.purchaseSatin) : Number(product.purchaseMoubara))
+      : (draft.fabric === "ساتان" ? Number(product.rentalSatin) : Number(product.rentalMoubara));
+    if (!Number.isSafeInteger(baseUnitPrice) || baseUnitPrice < 0) throw new Error("سعر المنتج غير مضبوط.");
+    const unitPriceApplied = baseUnitPrice + (isPurchase
+      ? (rightShawl.enabled || leftShawl.enabled || backShawl.enabled ? 40 : 0) + (cap.enabled ? 40 : 0) : 0);
+    const defaults = [
+      ["Fes", "fes", 20], ["Meknes", "city_meknes", 50], ["Sefrou", "city_sefrou", 50],
+      ["Ifrane", "city_ifrane", 50], ["El Hajeb", "city_el_hajeb", 50], ["Taza", "city_taza", 50],
+      ["Rabat", "city_rabat", 60], ["Casablanca", "city_casablanca", 60], ["Marrakech", "city_marrakech", 60],
+      ["Tangier", "city_tangier", 60], ["Agadir", "city_agadir", 60], ["Oujda", "city_oujda", 60],
+      ["Tetouan", "city_tetouan", 60], ["Nador", "city_nador", 60],
+    ];
+    const cityMap = new Map(defaults.map(([name, id, price]) => [String(name), { id: String(id), name: String(name), price: Number(price) }]));
+    citiesSnap.docs.forEach((doc) => {
+      const item = doc.data();
+      if (item.type === "city" && item.active !== false && typeof item.name === "string" && item.name.trim() && item.name.trim() !== "Fes") {
+        cityMap.set(item.name.trim(), { id: doc.id, name: item.name.trim(), price: Number(item.price) });
+      }
+    });
+    const selectedCity = cityMap.get(city);
+    if (!selectedCity || !Number.isSafeInteger(selectedCity.price) || selectedCity.price < 0) throw new Error("مدينة التوصيل المحددة غير متاحة حاليًا.");
+    const deliveryFeeApplied = draft.deliveryMethod === "pickup" ? 0 : selectedCity.price;
+    const deliveryPricingDocumentId = draft.deliveryMethod === "pickup" ? "" : selectedCity.id;
+    const productTotalEstimate = unitPriceApplied * quantity;
+    const totalPriceEstimate = productTotalEstimate + deliveryFeeApplied;
+    const rules = rulesSnap.exists ? rulesSnap.data() ?? {} : {};
+    const purchasePreparationDaysApplied = Number.isSafeInteger(rules.purchasePreparationDays) ? Number(rules.purchasePreparationDays) : 2;
+    const rentalAdvanceHoursApplied = Number.isSafeInteger(rules.rentalAdvanceHours) ? Number(rules.rentalAdvanceHours) : 24;
+
     const shopSnap = await db.doc("settings/shop").get();
     const shop = shopSnap.exists ? shopSnap.data() ?? {} : {};
     if (shop.acceptingOrders === false || shop.maintenanceMode === true ||
@@ -102,8 +141,30 @@ export async function POST(request: Request) {
         productType: isPurchase ? draft.productType : "fullOutfit",
         rightShawl, leftShawl, backShawl, cap, referenceImages,
         customizationScope: "shared_group_design", notes,
+        catalogProductId: product.id, fabric: draft.fabric, shawlColor,
+        unitPriceApplied, productTotalEstimate, deliveryFeeApplied, deliveryPricingDocumentId,
+        totalPriceEstimate, priceEstimateCurrency: "MAD",
+        priceEstimateBasis: "current_catalog_prices_no_group_discount",
+        purchasePreparationDaysApplied, rentalAdvanceHoursApplied,
         status: "received", createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
       });
+      const trackingRef = db.doc(`order_tracking/${number}`);
+      const phoneLookupRef = db.doc(`tracking_phone_lookup/${phone}`);
+      const lookupSnap = await transaction.get(phoneLookupRef);
+      const lookupData = lookupSnap.exists ? lookupSnap.data() ?? {} : {};
+      const previous = Array.isArray(lookupData.orderNumbers)
+        ? lookupData.orderNumbers.filter((value: unknown) => typeof value === "string" && (/^GM-[0-9]{4}-[0-9]{6}$/.test(value) || /^GRP-[0-9]{4}-[A-HJ-NP-Z2-9]{8}$/.test(value)))
+        : typeof lookupData.orderNumber === "string" ? [lookupData.orderNumber] : [];
+      transaction.set(trackingRef, {
+        orderNumber: number, status: "received", orderType: draft.orderType,
+        productType: isPurchase ? draft.productType : "fullOutfit", quantity,
+        createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
+      });
+      transaction.set(phoneLookupRef, {
+        orderNumber: number, latestOrderNumber: number,
+        orderNumbers: [...new Set([...previous, number])],
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
     });
     return NextResponse.json({ groupOrderNumber: number }, { status: 201 });
   } catch (error) {
