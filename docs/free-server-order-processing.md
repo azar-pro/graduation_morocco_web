@@ -27,10 +27,17 @@ Netlify Free currently includes 300 monthly credits and has a hard usage limit. 
 
 ## Important migration sequence
 
-1. Configure the secret on the Netlify site.
-2. Deploy this app to Netlify and verify both API endpoints using test orders.
-3. Only after the server endpoints are verified, deploy the Firestore rules in this branch. The rules deny direct public writes and route all new orders through the server API.
-4. Do not remove the existing Vercel deployment until Netlify production is verified.
+This is a backend foundation change, not a signal to deploy the website now. Continue completing and reviewing the full website first.
+
+When the entire site is ready for launch, use this one-time migration sequence:
+
+1. Finish all remaining website features, admin workflows, responsive review, and end-to-end tests.
+2. Create the Netlify site and configure `FIREBASE_SERVICE_ACCOUNT_JSON` as a server-only secret. Do not add the credential to GitHub or any `NEXT_PUBLIC_*` variable.
+3. Deploy a Netlify preview and verify individual orders, group orders, admin workflows, and public tracking using test records.
+4. Only after those checks pass, deploy the matching Firestore rules. The rules deny direct public writes and route new orders through the server API.
+5. Verify production on the final Netlify domain, then decide whether to retire the old hosting. Keep it available until the new production site is confirmed.
+
+Do not deploy this branch, production Firestore rules, or switch the public domain before the full website is approved and ready.
 
 Firebase Admin SDK bypasses Firestore Security Rules. Therefore, every field, price, setting, schedule, payment choice, deposit, and uploaded URL must be validated by the server before any write. Never trust browser-supplied totals or product/settings snapshots.
 
