@@ -242,7 +242,6 @@ try {
     };
     const counterRef = doc(publicDb, "order_number_counters", "2026");
     const orderRef = doc(publicDb, "orders", orderNumber);
-    const trackingRef = doc(publicDb, "order_tracking", orderNumber);
     await runTransaction(publicDb, async (transaction) => {
       const counter = await transaction.get(counterRef);
       transaction.set(counterRef, {
@@ -252,16 +251,16 @@ try {
         updatedAt: serverTimestamp(),
       }, { merge: true });
       transaction.set(orderRef, orderData);
-      transaction.set(trackingRef, {
-        orderNumber,
-        status: "received",
-        orderType: orderData.orderType,
-        productType: orderData.productType,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        ...(orderData.paymentMethod !== "cash_at_store"
-          ? { paymentDeadlineHoursApplied: 48 } : {}),
-      });
+    });
+    await setDoc(doc(publicDb, "order_tracking", orderNumber), {
+      orderNumber,
+      status: "received",
+      orderType: orderData.orderType,
+      productType: orderData.productType,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      ...(orderData.paymentMethod !== "cash_at_store"
+        ? { paymentDeadlineHoursApplied: 48 } : {}),
     });
   }
 
