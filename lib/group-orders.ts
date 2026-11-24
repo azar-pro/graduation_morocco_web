@@ -33,15 +33,10 @@ export type GroupOrderDraft = {
 
 const TZ = "Africa/Casablanca";
 const phonePattern = /^(05|06|07)[0-9]{8}$/;
+const disabledPrinting = (): GroupPrintingOption => ({
+  enabled: false, type: "", text: "", logoPath: null,
+});
 
-function makeCode() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const random = Array.from(crypto.getRandomValues(new Uint8Array(8)))
-    .map((value) => chars[value % chars.length])
-    .join("");
-  const year = DateTime.now().setZone(TZ).year;
-  return `GRP-${year}-${random}`;
-}
 
 export async function submitGroupOrder(draft: GroupOrderDraft) {
   const quantity = Math.trunc(draft.quantity);
