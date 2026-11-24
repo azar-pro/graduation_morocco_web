@@ -11,6 +11,7 @@ import {
   updateDoc,
   setDoc,
   serverTimestamp,
+  runTransaction,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -53,6 +54,54 @@ export async function updateGroupOrderStatus(groupOrderNumber: string, status: s
   await updateDoc(doc(db, "group_orders", groupOrderNumber), { status, updatedAt: serverTimestamp() });
 }
 
+
+export async function confirmGroupRentalDepositReceived(groupOrderNumber: string) {
+  const ref = doc(db, "group_orders", groupOrderNumber);
+  await runTransaction(db, async (transaction) => {
+    const snap = await transaction.get(ref);
+    if (!snap.exists()) throw new Error("الطلب الجماعي غير موجود.");
+    const order = snap.data();
+    if (order.orderType !== "كراء") throw new Error("هذا الطلب ليس طلب كراء.");
+    if (order.rentalDepositStatus === "collected") throw new Error("تم تسجيل استلام الضمان مسبقًا.");
+    const deposit = Math.max(0, Number(order.rentalSecurityDepositAmount ?? 0) || 0);
+    if (!Number.isSafeInteger(deposit) || deposit <= 0) throw new Error("قيمة ضمان الكراء غير صالحة.");
+    transaction.update(ref, {
+      rentalDepositCollectedAmount: deposit,
+      rentalDepositStatus: "collected",
+      rentalDepositCollectedAt: serverTimestamp(),
+      rentalAmountCollectedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  });
+}
+
+export async function settleGroupRentalReturn(args: { groupOrderNumber: string; damageDeduction: number }) {
+  const damage = Number(args.damageDeduction);
+  if (!Number.isSafeInteger(damage) || damage < 0) throw new Error("قيمة خصم الضرر يجب أن تكون عددًا صحيحًا موجبًا أو صفرًا.");
+  const ref = doc(db, "group_orders", args.groupOrderNumber);
+  return runTransaction(db, async (transaction) => {
+    const snap = await transaction.get(ref);
+    if (!snap.exists()) throw new Error("الطلب الجماعي غير موجود.");
+    const order = snap.data();
+    if (order.orderType !== "كراء") throw new Error("هذا الطلب ليس طلب كراء.");
+    if (order.rentalDepositStatus !== "collected") throw new Error("سجّل استلام الضمان أولًا.");
+    if (order.rentalReturnStatus === "returned") throw new Error("تمت تسوية إرجاع هذه المجموعة مسبقًا.");
+    const deposit = Math.max(0, Number(order.rentalDepositCollectedAmount ?? order.rentalSecurityDepositAmount ?? 0) || 0);
+    const rentalFee = Math.max(0, Number(order.rentalFeeAmount ?? order.productTotalEstimate ?? 0) || 0);
+    const refund = Math.max(0, deposit - rentalFee - damage);
+    const additionalDue = Math.max(0, rentalFee + damage - deposit);
+    transaction.update(ref, {
+      rentalReturnStatus: "returned",
+      rentalReturnedAt: serverTimestamp(),
+      rentalDamageDeduction: damage,
+      rentalRefundAmount: refund,
+      rentalAdditionalDamageDue: additionalDue,
+      rentalSettlementStatus: "settled",
+      updatedAt: serverTimestamp(),
+    });
+    return { deposit, rentalFee, damage, refund, additionalDue };
+  });
+}
 
 export async function loadAdminOrder(orderNumber: string): Promise<AdminOrder | null> {
   const snap = await getDoc(doc(db, "orders", orderNumber));
