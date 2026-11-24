@@ -48,7 +48,6 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
   const name = draft.responsibleName.trim();
   const phone = draft.phoneNumber.replace(/\s+/g, "");
   const address = draft.address.trim();
-  const notes = draft.notes.trim();
 
   if (quantity < 5) {
     throw new Error("الحد الأدنى للطلب الجماعي هو 5 أشخاص.");
@@ -96,12 +95,6 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
     }
   }
 
-  const number = makeCode();
-  const returnAt = draft.orderType === "كراء" ? scheduled.plus({ hours: 24 }) : null;
-
-  const disabledPrinting = (): GroupPrintingOption => ({
-    enabled: false, type: "", text: "", logoPath: null,
-  });
   const normalizePrinting = (option: GroupPrintingOption): GroupPrintingOption => {
     if (!option.enabled) return disabledPrinting();
     const text = option.text.trim();
@@ -128,10 +121,12 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
   if (referenceImages.length > 8 || referenceImages.some((url) => !url.startsWith("https://"))) {
     throw new Error("يمكن رفع حتى 8 صور مرجعية صالحة.");
   }
-  const rightShawl = isPurchase ? normalizePrinting(draft.rightShawl) : disabledPrinting();
-  const leftShawl = isPurchase ? normalizePrinting(draft.leftShawl) : disabledPrinting();
-  const backShawl = isPurchase ? normalizePrinting(draft.backShawl) : disabledPrinting();
-  const cap = isPurchase ? normalizePrinting(draft.cap) : disabledPrinting();
+  if (isPurchase) {
+    normalizePrinting(draft.rightShawl);
+    normalizePrinting(draft.leftShawl);
+    normalizePrinting(draft.backShawl);
+    normalizePrinting(draft.cap);
+  }
 
   const response = await fetch("/api/group-orders", {
     method: "POST",
