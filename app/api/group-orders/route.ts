@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     if (!/^(09|10|11|12|13|14|15|16|17|18|19|20|21):00$/.test(String(draft.deliveryTime ?? ""))) throw new Error("اختر وقتًا صالحًا للموعد.");
     const scheduled = DateTime.fromISO(`${draft.deliveryDate}T${draft.deliveryTime}`, { zone: TZ });
     if (!scheduled.isValid || !/^\d{4}-\d{2}-\d{2}$/.test(draft.deliveryDate)) throw new Error("موعد الطلب غير صالح.");
-    if (scheduled < DateTime.now().setZone(TZ).plus({ hours: 24 })) throw new Error("الطلب الجماعي يحتاج حجزًا قبل 24 ساعة على الأقل.");
+
 
     const members = Array.isArray(draft.members) ? draft.members.map((x) => String(x).trim()).filter(Boolean) : [];
     const excelUrl = draft.orderType === "شراء" ? String(draft.membersExcelUrl ?? "").trim() || null : null;
@@ -114,6 +114,14 @@ export async function POST(request: Request) {
     const rules = rulesSnap.exists ? rulesSnap.data() ?? {} : {};
     const purchasePreparationDaysApplied = Number.isSafeInteger(rules.purchasePreparationDays) ? Number(rules.purchasePreparationDays) : 2;
     const rentalAdvanceHoursApplied = Number.isSafeInteger(rules.rentalAdvanceHours) ? Number(rules.rentalAdvanceHours) : 24;
+    const minimumSchedule = draft.orderType === "شراء"
+      ? DateTime.now().setZone(TZ).plus({ days: purchasePreparationDaysApplied })
+      : DateTime.now().setZone(TZ).plus({ hours: rentalAdvanceHoursApplied });
+    if (scheduled < minimumSchedule) {
+      throw new Error(draft.orderType === "شراء"
+        ? `الشراء الجماعي يحتاج ${purchasePreparationDaysApplied} يوم/أيام على الأقل للتحضير.`
+        : `الكراء الجماعي يحتاج حجزًا مسبقًا بـ${rentalAdvanceHoursApplied} ساعة على الأقل.`);
+    }
 
     const shopSnap = await db.doc("settings/shop").get();
     const shop = shopSnap.exists ? shopSnap.data() ?? {} : {};
