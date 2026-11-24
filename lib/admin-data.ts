@@ -63,12 +63,15 @@ export async function confirmGroupRentalDepositReceived(groupOrderNumber: string
     const order = snap.data();
     if (order.orderType !== "كراء") throw new Error("هذا الطلب ليس طلب كراء.");
     if (order.rentalDepositStatus === "collected") throw new Error("تم تسجيل استلام الضمان مسبقًا.");
-    const deposit = Math.max(0, Number(order.rentalSecurityDepositAmount ?? 0) || 0);
+    const deposit = Number(order.rentalSecurityDepositAmount ?? 0);
+    const deliveryFee = Number(order.deliveryFeeApplied ?? 0);
     if (!Number.isSafeInteger(deposit) || deposit <= 0) throw new Error("قيمة ضمان الكراء غير صالحة.");
+    if (!Number.isSafeInteger(deliveryFee) || deliveryFee < 0) throw new Error("قيمة التوصيل غير صالحة.");
     transaction.update(ref, {
       rentalDepositCollectedAmount: deposit,
       rentalDepositStatus: "collected",
       rentalDepositCollectedAt: serverTimestamp(),
+      rentalDeliveryFeeCollectedAmount: deliveryFee,
       rentalAmountCollectedAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
@@ -86,8 +89,11 @@ export async function settleGroupRentalReturn(args: { groupOrderNumber: string; 
     if (order.orderType !== "كراء") throw new Error("هذا الطلب ليس طلب كراء.");
     if (order.rentalDepositStatus !== "collected") throw new Error("سجّل استلام الضمان أولًا.");
     if (order.rentalReturnStatus === "returned") throw new Error("تمت تسوية إرجاع هذه المجموعة مسبقًا.");
-    const deposit = Math.max(0, Number(order.rentalDepositCollectedAmount ?? order.rentalSecurityDepositAmount ?? 0) || 0);
-    const rentalFee = Math.max(0, Number(order.rentalFeeAmount ?? order.productTotalEstimate ?? 0) || 0);
+    const deposit = Number(order.rentalDepositCollectedAmount ?? order.rentalSecurityDepositAmount ?? 0);
+    const rentalFee = Number(order.rentalFeeAmount ?? order.productTotalEstimate ?? 0);
+    if (!Number.isSafeInteger(deposit) || deposit < 0 || !Number.isSafeInteger(rentalFee) || rentalFee < 0) {
+      throw new Error("بيانات مبالغ الكراء غير صالحة؛ راجع الطلب قبل التسوية.");
+    }
     const refund = Math.max(0, deposit - rentalFee - damage);
     const additionalDue = Math.max(0, rentalFee + damage - deposit);
     transaction.update(ref, {
