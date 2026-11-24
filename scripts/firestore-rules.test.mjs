@@ -53,6 +53,7 @@ try {
     updatedAt: serverTimestamp(),
   };
 
+  console.log("[rules-test] group valid purchase");
   await assertSucceeds(setDoc(doc(publicDb, "group_orders", groupNumber), validGroup));
 
   const groupDoc = (suffix, overrides = {}) => {
@@ -70,6 +71,7 @@ try {
     quantity: 4,
     members: ["One", "Two", "Three", "Four"],
   });
+  console.log("[rules-test] group invalid quantity");
   await assertFails(setDoc(invalidQuantityRef, invalidQuantity));
 
   const [excelRef, excelOrder] = groupDoc("ABCDEFG4", {
@@ -77,27 +79,32 @@ try {
     membersExcelUrl: "https://res.cloudinary.com/demo/raw/upload/group.xlsx",
     membersExcelName: "group.xlsx",
   });
+  console.log("[rules-test] group Excel upload");
   await assertSucceeds(setDoc(excelRef, excelOrder));
 
   const [printingRef, printingOrder] = groupDoc("ABCDEFG5", {
     rightShawl: { enabled: true, type: "text", text: "Class 2026", logoPath: null },
     referenceImages: ["https://res.cloudinary.com/demo/image/upload/reference.jpg"],
   });
+  console.log("[rules-test] group printing");
   await assertSucceeds(setDoc(printingRef, printingOrder));
 
   const [badPrintingRef, badPrintingOrder] = groupDoc("ABCDEFG6", {
     rightShawl: { enabled: true, type: "logo", text: "", logoPath: "javascript:alert(1)" },
   });
+  console.log("[rules-test] group unsafe logo URL");
   await assertFails(setDoc(badPrintingRef, badPrintingOrder));
 
   const [badImageRef, badImageOrder] = groupDoc("ABCDEFG7", {
     referenceImages: ["http://example.com/reference.jpg"],
   });
+  console.log("[rules-test] group unsafe reference image");
   await assertFails(setDoc(badImageRef, badImageOrder));
 
   const [extraFieldRef, extraFieldOrder] = groupDoc("ABCDEFG8", {
     isAdmin: true,
   });
+  console.log("[rules-test] group extra field");
   await assertFails(setDoc(extraFieldRef, extraFieldOrder));
 
   const [rentalRef, groupRentalOrder] = groupDoc("ABCDEFG9", {
@@ -108,6 +115,7 @@ try {
     membersExcelName: null,
     productType: "fullOutfit",
   });
+  console.log("[rules-test] group valid rental");
   await assertSucceeds(setDoc(rentalRef, groupRentalOrder));
 
   const [rentalPrintingRef, rentalPrintingOrder] = groupDoc("ABCDEFGH", {
@@ -119,6 +127,7 @@ try {
     productType: "fullOutfit",
     rightShawl: { enabled: true, type: "text", text: "Not allowed", logoPath: null },
   });
+  console.log("[rules-test] group rental printing");
   await assertFails(setDoc(rentalPrintingRef, rentalPrintingOrder));
 
   const [rentalHiddenPayloadRef, rentalHiddenPayloadOrder] = groupDoc("ABCDEFGJ", {
@@ -130,6 +139,7 @@ try {
     productType: "fullOutfit",
     rightShawl: { enabled: false, type: "logo", text: "", logoPath: "https://example.com/logo.png" },
   });
+  console.log("[rules-test] group hidden rental payload");
   await assertFails(setDoc(rentalHiddenPayloadRef, rentalHiddenPayloadOrder));
 
 
@@ -255,8 +265,10 @@ try {
     });
   }
 
+  console.log("[rules-test] individual valid purchase transaction");
   await assertSucceeds(submitIndividualOrder(18));
 
+  console.log("[rules-test] individual forged total");
   await assertFails(submitIndividualOrder(19, {
     totalPrice: 1,
     remainingAmount: 1,
@@ -270,6 +282,7 @@ try {
     depositPercentageApplied: 50,
     depositRequiredAmount: 250,
   };
+  console.log("[rules-test] individual bank deposit purchase");
   await assertSucceeds(submitIndividualOrder(19, bankPurchase));
 
   const rentalOrder = {
@@ -294,8 +307,10 @@ try {
     paymentDeadlineHoursApplied: 48,
     paymentDeadlineTimeZone: "Africa/Casablanca",
   };
+  console.log("[rules-test] individual valid rental");
   await assertSucceeds(submitIndividualOrder(20, rentalOrder));
 
+  console.log("[rules-test] individual invalid rental deposit");
   await assertFails(submitIndividualOrder(21, {
     ...rentalOrder,
     rentalSecurityDepositAmount: 1,
