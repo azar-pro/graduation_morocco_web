@@ -130,6 +130,13 @@ export async function POST(request: Request) {
     const returnAt = !isPurchase ? scheduled.plus({ hours: 24 }) : null;
     await db.runTransaction(async (transaction) => {
       const ref = db.doc(`group_orders/${number}`);
+      const trackingRef = db.doc(`order_tracking/${number}`);
+      const phoneLookupRef = db.doc(`tracking_phone_lookup/${phone}`);
+      const lookupSnap = await transaction.get(phoneLookupRef);
+      const lookupData = lookupSnap.exists ? lookupSnap.data() ?? {} : {};
+      const previous = Array.isArray(lookupData.orderNumbers)
+        ? lookupData.orderNumbers.filter((value: unknown) => typeof value === "string" && (/^GM-[0-9]{4}-[0-9]{6}$/.test(value) || /^GRP-[0-9]{4}-[A-HJ-NP-Z2-9]{8}$/.test(value)))
+        : typeof lookupData.orderNumber === "string" ? [lookupData.orderNumber] : [];
       transaction.create(ref, {
         groupOrderNumber: number, orderType: draft.orderType, quantity,
         responsibleName: name, phoneNumber: phone, city,
@@ -148,13 +155,6 @@ export async function POST(request: Request) {
         purchasePreparationDaysApplied, rentalAdvanceHoursApplied,
         status: "received", createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
       });
-      const trackingRef = db.doc(`order_tracking/${number}`);
-      const phoneLookupRef = db.doc(`tracking_phone_lookup/${phone}`);
-      const lookupSnap = await transaction.get(phoneLookupRef);
-      const lookupData = lookupSnap.exists ? lookupSnap.data() ?? {} : {};
-      const previous = Array.isArray(lookupData.orderNumbers)
-        ? lookupData.orderNumbers.filter((value: unknown) => typeof value === "string" && (/^GM-[0-9]{4}-[0-9]{6}$/.test(value) || /^GRP-[0-9]{4}-[A-HJ-NP-Z2-9]{8}$/.test(value)))
-        : typeof lookupData.orderNumber === "string" ? [lookupData.orderNumber] : [];
       transaction.set(trackingRef, {
         orderNumber: number, status: "received", orderType: draft.orderType,
         productType: isPurchase ? draft.productType : "fullOutfit", quantity,
