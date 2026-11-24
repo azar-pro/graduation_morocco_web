@@ -81,6 +81,8 @@ function validateAndBuild(draft: OrderDraft, products: PublicProduct[], cities: 
   if (fullName.length < 3 || fullName.length > 120) throw new Error("أدخل الاسم الكامل بشكل صحيح.");
   if (!phonePattern.test(phone)) throw new Error("أدخل رقم هاتف مغربي صحيح يبدأ بـ05 أو 06 أو 07.");
   if (!shawlColor || shawlColor.length > 80) throw new Error("اختر لون الوشاح.");
+  if (draft.productType !== "shawlOnly" && !["ذكر", "أنثى"].includes(draft.gender)) throw new Error("اختر الجنس بشكل صحيح.");
+  if (String(draft.notes ?? "").length > 1000 || String(draft.deliveryNotes ?? "").length > 1000) throw new Error("الملاحظات أطول من المسموح.");
   if (!cityName || cityName.length > 80) throw new Error("اختر المدينة.");
   if (draft.deliveryMethod !== "pickup" && draft.deliveryMethod !== "homeDelivery") throw new Error("طريقة التوصيل غير صالحة.");
   if (draft.deliveryMethod === "homeDelivery" && (address.length < 3 || address.length > 500)) throw new Error("أدخل عنوان التوصيل.");
