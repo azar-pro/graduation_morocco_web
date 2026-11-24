@@ -23,6 +23,8 @@ export type GroupOrderDraft = {
   membersExcelUrl?: string | null;
   membersExcelName?: string | null;
   productType: "fullOutfit" | "shawlAndCap";
+  fabric: "ساتان" | "موبرة";
+  shawlColor: string;
   rightShawl: GroupPrintingOption;
   leftShawl: GroupPrintingOption;
   backShawl: GroupPrintingOption;
