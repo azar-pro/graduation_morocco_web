@@ -112,6 +112,9 @@ export async function POST(request: Request) {
     const deliveryPricingDocumentId = draft.deliveryMethod === "pickup" ? "" : selectedCity.id;
     const productTotalEstimate = unitPriceApplied * quantity;
     const totalPriceEstimate = productTotalEstimate + deliveryFeeApplied;
+    if (!Number.isSafeInteger(productTotalEstimate) || !Number.isSafeInteger(totalPriceEstimate)) {
+      throw new Error("إجمالي سعر الطلب الجماعي خارج النطاق المسموح.");
+    }
     const rules = rulesSnap.exists ? rulesSnap.data() ?? {} : {};
     const purchasePreparationDaysApplied = Number.isSafeInteger(rules.purchasePreparationDays) ? Number(rules.purchasePreparationDays) : 2;
     const rentalAdvanceHoursApplied = Number.isSafeInteger(rules.rentalAdvanceHours) ? Number(rules.rentalAdvanceHours) : 24;
@@ -139,9 +142,15 @@ export async function POST(request: Request) {
       throw new Error("قيمة ضمان الكراء غير مضبوطة.");
     }
     const rentalSecurityDepositAmount = rentalSecurityDepositUnit * quantity;
+    if (!Number.isSafeInteger(rentalSecurityDepositAmount)) {
+      throw new Error("إجمالي ضمان الكراء الجماعي خارج النطاق المسموح.");
+    }
     const amountDueNowEstimate = !isPurchase
       ? rentalSecurityDepositAmount + deliveryFeeApplied
       : totalPriceEstimate;
+    if (!Number.isSafeInteger(amountDueNowEstimate)) {
+      throw new Error("المبلغ المطلوب عند الاستلام خارج النطاق المسموح.");
+    }
 
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     const bytes = crypto.getRandomValues(new Uint8Array(8));
