@@ -469,15 +469,17 @@ service cloud.firestore {
     }
 
     function validGroupPrintingOption(option) {
-      let disabled = option.enabled == false && option.type == '' && option.text == '' && option.logoPath == null;
-      let textOnly = option.enabled == true && option.type == 'text' && option.text is string
-        && option.text.size() >= 1 && option.text.size() <= 500 && option.logoPath == null;
-      let logoOnly = option.enabled == true && option.type == 'logo' && option.text == '' && validHttpsUrl(option.logoPath);
-      let both = option.enabled == true && option.type == 'both' && option.text is string
-        && option.text.size() >= 1 && option.text.size() <= 500 && validHttpsUrl(option.logoPath);
       return option is map && option.keys().hasOnly(['enabled','type','text','logoPath'])
         && option.enabled is bool && option.type is string && option.text is string
-        && (disabled || textOnly || logoOnly || both);
+        && (option.enabled == false
+          ? option.type == '' && option.text == '' && option.logoPath == null
+          : option.type == 'text'
+            ? option.text.size() >= 1 && option.text.size() <= 500 && option.logoPath == null
+            : option.type == 'logo'
+              ? option.text == '' && validHttpsUrl(option.logoPath)
+              : option.type == 'both'
+                ? option.text.size() >= 1 && option.text.size() <= 500 && validHttpsUrl(option.logoPath)
+                : false);
     }
 
     function groupOrderShopAllows(orderType) {
