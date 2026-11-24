@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     }
 
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    const bytes = crypto.getRandomValues(new Uint8Array(12));
+    const bytes = crypto.getRandomValues(new Uint8Array(8));
     const suffix = Array.from(bytes, (value) => chars[value % chars.length]).join("");
     const year = DateTime.now().setZone(TZ).year;
     const number = `GRP-${year}-${suffix}`;
