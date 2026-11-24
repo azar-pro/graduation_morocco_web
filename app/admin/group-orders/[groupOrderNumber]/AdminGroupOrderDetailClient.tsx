@@ -187,7 +187,7 @@ function AdminGroupOrderDetailContent(){
                   setSaving(true); setMessage("");
                   try {
                     await confirmGroupRentalDepositReceived(String(order.groupOrderNumber??order.id));
-                    setOrder({...order,rentalDepositStatus:"collected",rentalDepositCollectedAmount:Number(order.rentalSecurityDepositAmount??0)});
+                    setOrder({...order,rentalDepositStatus:"collected",rentalDepositCollectedAmount:Number(order.rentalSecurityDepositAmount??0),rentalDeliveryFeeCollectedAmount:Number(order.deliveryFeeApplied??0)});
                   } catch(error) { setMessage(error instanceof Error ? error.message : "تعذر تسجيل استلام الضمان."); }
                   finally { setSaving(false); }
                 }}>تسجيل استلام ضمان المجموعة</button>
