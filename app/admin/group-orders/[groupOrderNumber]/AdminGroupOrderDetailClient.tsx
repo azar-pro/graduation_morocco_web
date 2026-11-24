@@ -6,6 +6,8 @@ import AdminGuard from "../../AdminGuard";
 import {
   loadAdminGroupOrder,
   updateGroupOrderStatus,
+  confirmGroupRentalDepositReceived,
+  settleGroupRentalReturn,
   type AdminGroupOrder,
 } from "@/lib/admin-data";
 
@@ -45,6 +47,7 @@ function AdminGroupOrderDetailContent(){
   const [loading,setLoading]=useState(true);
   const [message,setMessage]=useState("");
   const [saving,setSaving]=useState(false);
+  const [damageDeduction,setDamageDeduction]=useState("0");
 
   useEffect(()=>{
     loadAdminGroupOrder(groupOrderNumber)
@@ -175,7 +178,41 @@ function AdminGroupOrderDetailContent(){
                 <div><dt>حالة استلام الضمان</dt><dd>{value(order.rentalDepositStatus)==="pending"?"لم يتم تسجيل الاستلام":value(order.rentalDepositStatus)}</dd></div>
                 <div><dt>حالة الإرجاع</dt><dd>{value(order.rentalReturnStatus)}</dd></div>
               </dl>
-              <p>يُخصم مجموع ثمن الكراء وأي تعويض عن الضرر من الضمان بعد إرجاع المجموعة، ثم يُعاد المتبقي. يلزم استكمال إجراء تسجيل الاستلام وتسوية الإرجاع من لوحة الإدارة.</p>
+              <p>يُخصم مجموع ثمن الكراء وأي تعويض عن الضرر من الضمان بعد إرجاع المجموعة، ثم يُعاد المتبقي.</p>
+              {order.rentalDepositStatus !== "collected" && (
+                <button type="button" disabled={saving} onClick={async()=>{
+                  setSaving(true); setMessage("");
+                  try {
+                    await confirmGroupRentalDepositReceived(String(order.groupOrderNumber??order.id));
+                    setOrder({...order,rentalDepositStatus:"collected",rentalDepositCollectedAmount:Number(order.rentalSecurityDepositAmount??0)});
+                  } catch(error) { setMessage(error instanceof Error ? error.message : "تعذر تسجيل استلام الضمان."); }
+                  finally { setSaving(false); }
+                }}>تسجيل استلام ضمان المجموعة</button>
+              )}
+              {order.rentalDepositStatus === "collected" && order.rentalReturnStatus !== "returned" && (
+                <div className="formSection">
+                  <label>خصم الضرر للمجموعة كاملة (درهم)
+                    <input type="number" min="0" step="1" value={damageDeduction} onChange={e=>setDamageDeduction(e.target.value)} disabled={saving} />
+                  </label>
+                  <button type="button" disabled={saving || !Number.isSafeInteger(Number(damageDeduction)) || Number(damageDeduction)<0}
+                    onClick={async()=>{
+                      if(!window.confirm("تأكيد إرجاع المجموعة وتسوية الضمان؟ لا يمكن تكرار هذه العملية بعد الحفظ.")) return;
+                      setSaving(true); setMessage("");
+                      try {
+                        const result=await settleGroupRentalReturn({groupOrderNumber:String(order.groupOrderNumber??order.id),damageDeduction:Number(damageDeduction)});
+                        setOrder({...order,rentalReturnStatus:"returned",rentalDamageDeduction:result.damage,rentalRefundAmount:result.refund,rentalAdditionalDamageDue:result.additionalDue,rentalSettlementStatus:"settled"});
+                      } catch(error) { setMessage(error instanceof Error ? error.message : "تعذرت تسوية إرجاع المجموعة."); }
+                      finally { setSaving(false); }
+                    }}>تأكيد إرجاع المجموعة وتسوية الضمان</button>
+                </div>
+              )}
+              {order.rentalReturnStatus === "returned" && (
+                <dl>
+                  <div><dt>خصم الضرر</dt><dd>{Number(order.rentalDamageDeduction??0)} درهم</dd></div>
+                  <div><dt>المبلغ المسترد</dt><dd>{Number(order.rentalRefundAmount??0)} درهم</dd></div>
+                  <div><dt>مبلغ إضافي مستحق</dt><dd>{Number(order.rentalAdditionalDamageDue??0)} درهم</dd></div>
+                </dl>
+              )}
             </section>
           )}
         </main>
