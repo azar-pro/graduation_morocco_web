@@ -26,11 +26,7 @@ function getServiceAccount() {
     throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON is missing required service-account fields.");
   }
 
-  return parsed as {
-    project_id: string;
-    client_email: string;
-    private_key: string;
-  };
+  return parsed as Parameters<typeof cert>[0];
 }
 
 function getAdminApp() {
@@ -38,9 +34,10 @@ function getAdminApp() {
   if (existing) return existing;
 
   const serviceAccount = getServiceAccount();
+  const data = serviceAccount as Record<string, unknown>;
   return initializeApp({
     credential: cert(serviceAccount),
-    projectId: serviceAccount.project_id,
+    projectId: String(data.project_id),
   });
 }
 
