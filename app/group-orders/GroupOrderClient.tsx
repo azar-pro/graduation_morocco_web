@@ -21,6 +21,8 @@ const initial: GroupOrderDraft = {
   deliveryTime: "12:00",
   members: Array(5).fill(""),
   productType: "fullOutfit",
+  fabric: "ساتان",
+  shawlColor: "ذهبي",
   rightShawl: { enabled: false, type: "", text: "", logoPath: null },
   leftShawl: { enabled: false, type: "", text: "", logoPath: null },
   backShawl: { enabled: false, type: "", text: "", logoPath: null },
@@ -179,18 +181,28 @@ export default function GroupOrderClient() {
         </div>
       </section>
 
-      {draft.orderType === "شراء" && (
-        <section className="formSection">
-          <h2>3. المنتج</h2>
-          <p className="sectionHint">اختر ما سيتم توفيره لجميع أفراد المجموعة.</p>
+      <section className="formSection">
+        <h2>3. المنتج</h2>
+        <p className="sectionHint">اختر القماش ولون الوشاح لجميع أفراد المجموعة.</p>
+        {draft.orderType === "شراء" && (
           <div className="choiceGrid">
             <button type="button" className={draft.productType === "fullOutfit" ? "choice active" : "choice"}
               onClick={() => setDraft((d) => ({ ...d, productType: "fullOutfit" }))}>بدلة تخرج كاملة</button>
             <button type="button" className={draft.productType === "shawlAndCap" ? "choice active" : "choice"}
               onClick={() => setDraft((d) => ({ ...d, productType: "shawlAndCap" }))}>وشاح وقبعة فقط دون البدلة</button>
           </div>
-        </section>
-      )}
+        )}
+        <div className="fieldGrid">
+          <label>القماش
+            <select value={draft.fabric} onChange={(e) => setDraft((d) => ({ ...d, fabric: e.target.value as GroupOrderDraft["fabric"] }))}>
+              <option value="ساتان">ساتان</option><option value="موبرة">موبرة</option>
+            </select>
+          </label>
+          <label>لون الوشاح
+            <input value={draft.shawlColor} onChange={(e) => setDraft((d) => ({ ...d, shawlColor: e.target.value }))} maxLength={80} required />
+          </label>
+        </div>
+      </section>
 
       {draft.orderType === "شراء" && (
         <section className="formSection">
