@@ -63,17 +63,6 @@ service cloud.firestore {
               && data.address.size() >= 3
               && data.address.size() <= 500;
       let validFesArea = data.fesArea == null;
-      let rentalContent = data.orderType != 'كراء'
-          || (
-            data.referenceImages.size() == 0
-            && data.rightShawl.enabled == false
-            && data.leftShawl.enabled == false
-            && data.backShawl.enabled == false
-            && data.cap.enabled == false
-          );
-      let shawlOnlyCap = data.productType != 'shawlOnly'
-          || data.cap.enabled == false;
-
       return data.orderType in ['شراء', 'كراء']
           && data.productType in ['fullOutfit', 'shawlAndCap', 'shawlOnly']
           && validGender
@@ -99,13 +88,20 @@ service cloud.firestore {
           && data.deliveryNotes.size() <= 1000
           && data.deliveryTime is string
           && data.deliveryTime.matches('^(09|10|11|12|13|14|15|16|17|18|19|20|21):00$')
-          && validReferenceImages(data.referenceImages)
-          && validPrintingOption(data.rightShawl)
-          && validPrintingOption(data.leftShawl)
-          && validPrintingOption(data.backShawl)
-          && validPrintingOption(data.cap)
-          && rentalContent
-          && shawlOnlyCap;
+          && (data.orderType == 'شراء'
+            ? (validReferenceImages(data.referenceImages)
+              && validPrintingOption(data.rightShawl)
+              && validPrintingOption(data.leftShawl)
+              && validPrintingOption(data.backShawl)
+              && validPrintingOption(data.cap)
+              && (data.productType != 'shawlOnly' || data.cap.enabled == false))
+            : data.orderType == 'كراء'
+              ? (data.referenceImages is list && data.referenceImages.size() == 0
+                && data.rightShawl.enabled == false
+                && data.leftShawl.enabled == false
+                && data.backShawl.enabled == false
+                && data.cap.enabled == false)
+              : false);
     }
 
     function configuredShopAllowsNewOrder(orderType) {
