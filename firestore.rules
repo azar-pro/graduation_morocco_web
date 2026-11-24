@@ -271,39 +271,15 @@ service cloud.firestore {
       let productMatches = productActive
           && product.productType == data.productType;
 
+      let basePrice = data.orderType == 'شراء'
+          ? (data.fabric == 'ساتان' ? product.purchaseSatin : product.purchaseMoubara)
+          : (data.fabric == 'ساتان' ? product.rentalSatin : product.rentalMoubara);
       return productMatches
           && data.productPriceApplied is int
           && data.productPriceApplied >= 0
-          && (
-            (
-              data.orderType == 'شراء'
-              && data.fabric == 'ساتان'
-              && product.purchaseSatin is int
-              && product.purchaseSatin >= 0
-              && validPrintingPrice(data, product.purchaseSatin)
-            )
-            || (
-              data.orderType == 'شراء'
-              && data.fabric == 'موبرة'
-              && product.purchaseMoubara is int
-              && product.purchaseMoubara >= 0
-              && validPrintingPrice(data, product.purchaseMoubara)
-            )
-            || (
-              data.orderType == 'كراء'
-              && data.fabric == 'ساتان'
-              && product.rentalSatin is int
-              && product.rentalSatin >= 0
-              && validPrintingPrice(data, product.rentalSatin)
-            )
-            || (
-              data.orderType == 'كراء'
-              && data.fabric == 'موبرة'
-              && product.rentalMoubara is int
-              && product.rentalMoubara >= 0
-              && validPrintingPrice(data, product.rentalMoubara)
-            )
-          );
+          && basePrice is int
+          && basePrice >= 0
+          && validPrintingPrice(data, basePrice);
     }
 
     function validFesDeliveryPricing(data) {
@@ -336,23 +312,13 @@ service cloud.firestore {
           && data.deliveryFeeApplied is int
           && data.deliveryFee >= 0
           && data.deliveryFee == data.deliveryFeeApplied
-          && (
-            (
-              data.deliveryMethod == 'pickup'
-              && data.deliveryPricingDocumentId == ''
-              && data.deliveryFeeApplied == 0
-            )
-            || (
-              data.deliveryMethod == 'homeDelivery'
-              && data.city == 'Fes'
-              && validFesDeliveryPricing(data)
-            )
-            || (
-              data.deliveryMethod == 'homeDelivery'
-              && data.city != 'Fes'
-              && validCityDeliveryPricing(data)
-            )
-          );
+          && (data.deliveryMethod == 'pickup'
+            ? data.deliveryPricingDocumentId == '' && data.deliveryFeeApplied == 0
+            : data.deliveryMethod == 'homeDelivery'
+              ? (data.city == 'Fes'
+                ? validFesDeliveryPricing(data)
+                : validCityDeliveryPricing(data))
+              : false);
     }
 
     function validRentalDeposit(data) {
