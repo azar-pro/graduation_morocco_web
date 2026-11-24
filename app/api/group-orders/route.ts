@@ -130,6 +130,18 @@ export async function POST(request: Request) {
         (isPurchase && shop.purchaseEnabled === false) || (!isPurchase && shop.rentalEnabled === false)) {
       throw new Error("استقبال هذا النوع من الطلبات متوقف مؤقتًا.");
     }
+    const rentalSecurityDepositUnit = !isPurchase
+      ? Math.max(0, Number(draft.fabric === "ساتان"
+        ? shop.rentalSecurityDepositSatin ?? 250
+        : shop.rentalSecurityDepositMoubara ?? 300) || 0)
+      : 0;
+    if (!isPurchase && (!Number.isSafeInteger(rentalSecurityDepositUnit) || rentalSecurityDepositUnit <= 0)) {
+      throw new Error("قيمة ضمان الكراء غير مضبوطة.");
+    }
+    const rentalSecurityDepositAmount = rentalSecurityDepositUnit * quantity;
+    const amountDueNowEstimate = !isPurchase
+      ? rentalSecurityDepositAmount + deliveryFeeApplied
+      : totalPriceEstimate;
 
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     const bytes = crypto.getRandomValues(new Uint8Array(8));
@@ -159,7 +171,19 @@ export async function POST(request: Request) {
         customizationScope: "shared_group_design", notes,
         catalogProductId: product.id, fabric: draft.fabric, shawlColor,
         unitPriceApplied, productTotalEstimate, deliveryFeeApplied, deliveryPricingDocumentId,
-        totalPriceEstimate, priceEstimateCurrency: "MAD",
+        totalPriceEstimate, amountDueNowEstimate, priceEstimateCurrency: "MAD",
+        ...(isPurchase ? {} : {
+          rentalFeeAmount: productTotalEstimate,
+          rentalSecurityDepositUnit,
+          rentalSecurityDepositAmount,
+          rentalDepositCollectedAmount: 0,
+          rentalDepositStatus: "pending",
+          rentalReturnStatus: "awaiting_return",
+          rentalDamageDeduction: 0,
+          rentalRefundAmount: null,
+          rentalAdditionalDamageDue: 0,
+          rentalSettlementStatus: "pending",
+        }),
         priceEstimateBasis: "current_catalog_prices_no_group_discount",
         purchasePreparationDaysApplied, rentalAdvanceHoursApplied,
         status: "received", createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
