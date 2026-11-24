@@ -110,54 +110,66 @@ export async function loadAdminOrder(orderNumber: string): Promise<AdminOrder | 
 
 export async function confirmRentalDepositReceived(orderNumber: string) {
   const ref = doc(db, "orders", orderNumber);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) throw new Error("الطلب غير موجود.");
-  const order = snap.data();
-  if (order.orderType !== "كراء") throw new Error("هذا الطلب ليس طلب كراء.");
-  if (order.rentalDepositStatus === "collected") throw new Error("تم تسجيل استلام الضمان مسبقًا.");
-  const deposit = Math.max(0, Number(order.rentalSecurityDepositAmount ?? 0) || 0);
-  if (deposit <= 0) throw new Error("قيمة ضمان الكراء غير صالحة.");
-  await updateDoc(ref, {
-    rentalDepositCollectedAmount: deposit,
-    rentalDepositStatus: "collected",
-    rentalDepositCollectedAt: serverTimestamp(),
-    rentalDeliveryFeeCollectedAmount: Math.max(0, Number(order.deliveryFeeApplied ?? order.deliveryFee ?? 0) || 0),
-    rentalAmountCollectedAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+  await runTransaction(db, async (transaction) => {
+    const snap = await transaction.get(ref);
+    if (!snap.exists()) throw new Error("الطلب غير موجود.");
+    const order = snap.data();
+    if (order.orderType !== "كراء") throw new Error("هذا الطلب ليس طلب كراء.");
+    if (order.rentalDepositStatus === "collected") throw new Error("تم تسجيل استلام الضمان مسبقًا.");
+    const deposit = Number(order.rentalSecurityDepositAmount ?? 0);
+    const deliveryFee = Number(order.deliveryFeeApplied ?? order.deliveryFee ?? 0);
+    if (!Number.isSafeInteger(deposit) || deposit <= 0) throw new Error("قيمة ضمان الكراء غير صالحة.");
+    if (!Number.isSafeInteger(deliveryFee) || deliveryFee < 0) throw new Error("قيمة التوصيل غير صالحة.");
+    transaction.update(ref, {
+      rentalDepositCollectedAmount: deposit,
+      rentalDepositStatus: "collected",
+      rentalDepositCollectedAt: serverTimestamp(),
+      rentalDeliveryFeeCollectedAmount: deliveryFee,
+      rentalAmountCollectedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
   });
 }
 
 export async function settleRentalReturn(args: { orderNumber: string; damageDeduction: number }) {
   const damage = Number(args.damageDeduction);
-  if (!Number.isFinite(damage) || damage < 0) throw new Error("قيمة خصم الضرر غير صالحة.");
+  if (!Number.isSafeInteger(damage) || damage < 0) throw new Error("قيمة خصم الضرر يجب أن تكون عددًا صحيحًا موجبًا أو صفرًا.");
   const ref = doc(db, "orders", args.orderNumber);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) throw new Error("الطلب غير موجود.");
-  const order = snap.data();
-  if (order.orderType !== "كراء") throw new Error("هذا الطلب ليس طلب كراء.");
-  if (order.rentalDepositStatus !== "collected") throw new Error("سجّل استلام الضمان أولًا.");
-  if (order.rentalReturnStatus === "returned") throw new Error("تمت تسوية إرجاع هذه البدلة مسبقًا.");
+  return runTransaction(db, async (transaction) => {
+    const snap = await transaction.get(ref);
+    if (!snap.exists()) throw new Error("الطلب غير موجود.");
+    const order = snap.data();
+    if (order.orderType !== "كراء") throw new Error("هذا الطلب ليس طلب كراء.");
+    if (order.rentalDepositStatus !== "collected") throw new Error("سجّل استلام الضمان أولًا.");
+    if (order.rentalReturnStatus === "returned") throw new Error("تمت تسوية إرجاع هذه البدلة مسبقًا.");
 
-  const deposit = Math.max(0, Number(order.rentalDepositCollectedAmount ?? order.rentalSecurityDepositAmount ?? 0) || 0);
-  const rentalFee = Math.max(0, Number(order.rentalFeeAmount ?? 0) || 0);
-  const deductions = rentalFee + damage;
-  const refund = Math.max(0, deposit - deductions);
-  const additionalDue = Math.max(0, deductions - deposit);
+    const deposit = Number(order.rentalDepositCollectedAmount ?? order.rentalSecurityDepositAmount ?? 0);
+    const rentalFee = Number(order.rentalFeeAmount ?? 0);
+    const totalPrice = Number(order.totalPrice ?? 0);
+    if (!Number.isSafeInteger(deposit) || deposit < 0
+      || !Number.isSafeInteger(rentalFee) || rentalFee < 0
+      || !Number.isSafeInteger(totalPrice) || totalPrice < 0) {
+      throw new Error("بيانات مبالغ الكراء غير صالحة؛ راجع الطلب قبل التسوية.");
+    }
+    const deductions = rentalFee + damage;
+    const refund = Math.max(0, deposit - deductions);
+    const additionalDue = Math.max(0, deductions - deposit);
 
-  await updateDoc(ref, {
-    rentalReturnStatus: "returned",
-    rentalReturnedAt: serverTimestamp(),
-    rentalDamageDeduction: damage,
-    rentalRefundAmount: refund,
-    rentalAdditionalDamageDue: additionalDue,
-    rentalSettlementStatus: "settled",
-    paymentStatus: "paid",
-    amountPaid: Math.max(0, Number(order.totalPrice ?? 0) || 0),
-    remainingAmount: 0,
-    paymentUpdatedAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    transaction.update(ref, {
+      rentalReturnStatus: "returned",
+      rentalReturnedAt: serverTimestamp(),
+      rentalDamageDeduction: damage,
+      rentalRefundAmount: refund,
+      rentalAdditionalDamageDue: additionalDue,
+      rentalSettlementStatus: "settled",
+      paymentStatus: "paid",
+      amountPaid: totalPrice,
+      remainingAmount: 0,
+      paymentUpdatedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return { deposit, rentalFee, damage, refund, additionalDue };
   });
-  return { deposit, rentalFee, damage, refund, additionalDue };
 }
 
 export async function updateOrderPayment(args: {
