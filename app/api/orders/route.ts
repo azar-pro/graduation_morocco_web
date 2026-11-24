@@ -165,10 +165,16 @@ function validateAndBuild(draft: OrderDraft, products: PublicProduct[], cities: 
 
 export async function POST(request: Request) {
   try {
-    if (Number(request.headers.get("content-length") ?? 0) > 48_000) {
+    const origin = request.headers.get("origin");
+    const host = request.headers.get("host");
+    if (!origin || !host || new URL(origin).host !== host) {
+      return NextResponse.json({ error: "مصدر الطلب غير مسموح." }, { status: 403 });
+    }
+    const rawBody = await request.text();
+    if (new TextEncoder().encode(rawBody).byteLength > 48_000) {
       return NextResponse.json({ error: "حجم بيانات الطلب أكبر من المسموح." }, { status: 413 });
     }
-    const body = await request.json() as { draft?: OrderDraft };
+    const body = JSON.parse(rawBody) as { draft?: OrderDraft };
     const draft = body?.draft;
     const db = getAdminFirestore();
 
