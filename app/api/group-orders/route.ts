@@ -3,6 +3,7 @@ import { DateTime } from "luxon";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getAdminFirestore } from "@/lib/firebase-admin";
 import type { GroupOrderDraft, GroupPrintingOption } from "@/lib/group-orders";
+import type { PublicProduct } from "@/lib/order-types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
     const [productsSnap, citiesSnap, rulesSnap] = await Promise.all([
       db.collection("products").get(), db.collection("delivery_settings").get(), db.doc("settings/order_rules").get(),
     ]);
-    const product = productsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+    const product = productsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as PublicProduct)
       .find((item) => item.productType === (draft.orderType === "كراء" ? "fullOutfit" : draft.productType) && item.active !== false);
     if (!product) throw new Error("المنتج المحدد غير متاح حاليًا.");
     const baseUnitPrice = draft.orderType === "شراء"
