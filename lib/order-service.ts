@@ -4,6 +4,7 @@ import {
   doc,
   runTransaction,
   serverTimestamp,
+  setDoc,
   Timestamp,
 } from "firebase/firestore";
 import { DateTime } from "luxon";
@@ -274,7 +275,6 @@ export async function submitOrder(args: {
     const number = `GM-${year}-${String(next).padStart(6, "0")}`;
 
     const orderRef = doc(db, "orders", number);
-    const trackingRef = doc(db, "order_tracking", number);
 
     const returnAt = scheduled.plus({ hours: 24 });
     const returnDate = draft.orderType === "كراء"
@@ -380,20 +380,21 @@ export async function submitOrder(args: {
     }, { merge: true });
 
     transaction.set(orderRef, orderData);
-    transaction.set(trackingRef, {
-      orderNumber: number,
-      status: "received",
-      orderType: draft.orderType,
-      productType: draft.productType,
-      createdAt: serverTimestamp(),
-      ...(isProofPayment ? { paymentDeadlineHoursApplied: deadlineHours } : {}),
-      updatedAt: serverTimestamp(),
-    });
-
-
-
-    return number;
+    return { number, deadlineHours };
   }, { maxAttempts: 10 });
 
-  return { orderNumber, quote };
+  // Keep the order number and order document atomic. Tracking is a separate
+  // small write so its rule evaluation does not consume the order transaction
+  // expression budget.
+  await setDoc(doc(db, "order_tracking", orderNumber.number), {
+    orderNumber: orderNumber.number,
+    status: "received",
+    orderType: draft.orderType,
+    productType: draft.productType,
+    createdAt: serverTimestamp(),
+    ...(isProofPayment ? { paymentDeadlineHoursApplied: orderNumber.deadlineHours } : {}),
+    updatedAt: serverTimestamp(),
+  });
+
+  return { orderNumber: orderNumber.number, quote };
 }
