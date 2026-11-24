@@ -1,8 +1,6 @@
 "use client";
 
-import { doc, serverTimestamp, setDoc, Timestamp } from "firebase/firestore";
 import { DateTime } from "luxon";
-import { db } from "@/lib/firebase";
 
 export type GroupPrintingOption = {
   enabled: boolean;
@@ -135,32 +133,17 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
   const backShawl = isPurchase ? normalizePrinting(draft.backShawl) : disabledPrinting();
   const cap = isPurchase ? normalizePrinting(draft.cap) : disabledPrinting();
 
-  await setDoc(doc(db, "group_orders", number), {
-    groupOrderNumber: number,
-    orderType: draft.orderType,
-    quantity,
-    responsibleName: name,
-    phoneNumber: phone,
-    city: draft.city.trim(),
-    deliveryMethod: draft.deliveryMethod,
-    address: draft.deliveryMethod === "pickup" ? "" : address,
-    scheduledAt: Timestamp.fromDate(scheduled.toUTC().toJSDate()),
-    returnAt: returnAt ? Timestamp.fromDate(returnAt.toUTC().toJSDate()) : null,
-    members: draft.orderType === "شراء" && !membersExcelUrl ? members : [],
-    membersExcelUrl,
-    membersExcelName,
-    productType: isPurchase ? draft.productType : "fullOutfit",
-    rightShawl,
-    leftShawl,
-    backShawl,
-    cap,
-    referenceImages,
-    customizationScope: "shared_group_design",
-    notes,
-    status: "received",
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+  const response = await fetch("/api/group-orders", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ draft }),
   });
-
-  return number;
+  const payload = await response.json().catch(() => ({})) as {
+    groupOrderNumber?: string;
+    error?: string;
+  };
+  if (!response.ok || !payload.groupOrderNumber) {
+    throw new Error(payload.error || "تعذر إرسال الطلب الجماعي.");
+  }
+  return payload.groupOrderNumber;
 }
