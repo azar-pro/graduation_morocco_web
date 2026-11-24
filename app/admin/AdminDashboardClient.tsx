@@ -111,6 +111,22 @@ function AdminDashboardContent({ profile }: { profile: AdminProfile }) {
     return sum + Math.max(0, Number(order.rentalSecurityDepositAmount ?? 0) || 0);
   }, 0);
 
+  // Group orders are shown separately: their purchase payments are not yet
+  // tracked by the group-order workflow, so never count them as collected.
+  const activeGroups = groups.filter((order) => order.status !== "cancelled");
+  const activeGroupOrderValue = activeGroups.reduce(
+    (sum, order) => sum + Math.max(0, Number(order.totalPriceEstimate ?? 0) || 0),
+    0,
+  );
+  const groupRentalDepositsHeld = activeGroups.reduce((sum, order) => {
+    if (order.orderType !== "كراء" || order.rentalDepositStatus !== "collected" || order.rentalReturnStatus === "returned") return sum;
+    return sum + Math.max(0, Number(order.rentalDepositCollectedAmount ?? 0) || 0);
+  }, 0);
+  const groupRentalDepositsPending = activeGroups.reduce((sum, order) => {
+    if (order.orderType !== "كراء" || order.rentalDepositStatus === "collected" || order.rentalReturnStatus === "returned") return sum;
+    return sum + Math.max(0, Number(order.rentalSecurityDepositAmount ?? 0) || 0);
+  }, 0);
+
   return (
     <div className="adminShell">
           <aside className="adminSidebar">
@@ -153,10 +169,13 @@ function AdminDashboardContent({ profile }: { profile: AdminProfile }) {
               <article><span>طلبات جماعية</span><strong>{groups.length}</strong></article>
               <article><span>قيد التنفيذ</span><strong>{orders.filter((x) => !["completed", "cancelled"].includes(String(x.status))).length}</strong></article>
               <article><span>قيمة الطلبات النشطة</span><strong>{money(activeOrderValue)}</strong></article>
+              <article><span>قيمة الطلبات الجماعية النشطة</span><strong>{money(activeGroupOrderValue)}</strong></article>
               <article><span>المبلغ المحصّل</span><strong>{money(amountPaid)}</strong></article>
               <article><span>المبلغ المتبقي للشراء</span><strong>{money(remainingAmount)}</strong></article>
               <article><span>ضمانات كراء مستلمة</span><strong>{money(rentalDepositsHeld)}</strong></article>
               <article><span>ضمانات كراء بانتظار التحصيل</span><strong>{money(rentalDepositsPending)}</strong></article>
+              <article><span>ضمانات المجموعات المستلمة</span><strong>{money(groupRentalDepositsHeld)}</strong></article>
+              <article><span>ضمانات المجموعات بانتظار التحصيل</span><strong>{money(groupRentalDepositsPending)}</strong></article>
             </section>
 
             <div className="adminSearch">
