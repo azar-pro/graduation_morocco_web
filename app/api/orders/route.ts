@@ -10,6 +10,22 @@ export const dynamic = "force-dynamic";
 
 const TZ = "Africa/Casablanca";
 const phonePattern = /^(05|06|07)[0-9]{8}$/;
+const DEFAULT_CITIES: DeliveryCity[] = [
+  { id: "fes", name: "Fes", price: 20, active: true },
+  { id: "city_meknes", name: "Meknes", price: 50, active: true },
+  { id: "city_sefrou", name: "Sefrou", price: 50, active: true },
+  { id: "city_ifrane", name: "Ifrane", price: 50, active: true },
+  { id: "city_el_hajeb", name: "El Hajeb", price: 50, active: true },
+  { id: "city_taza", name: "Taza", price: 50, active: true },
+  { id: "city_rabat", name: "Rabat", price: 60, active: true },
+  { id: "city_casablanca", name: "Casablanca", price: 60, active: true },
+  { id: "city_marrakech", name: "Marrakech", price: 60, active: true },
+  { id: "city_tangier", name: "Tangier", price: 60, active: true },
+  { id: "city_agadir", name: "Agadir", price: 60, active: true },
+  { id: "city_oujda", name: "Oujda", price: 60, active: true },
+  { id: "city_tetouan", name: "Tetouan", price: 60, active: true },
+  { id: "city_nador", name: "Nador", price: 60, active: true },
+];
 const disabledPrinting = (): PrintingOption => ({ enabled: false, type: "", text: "", logoPath: null });
 
 function normalizePrinting(option: PrintingOption): PrintingOption {
@@ -197,10 +213,19 @@ export async function POST(request: Request) {
         rentalSatin: d.rentalSatin, rentalMoubara: d.rentalMoubara,
       } as PublicProduct;
     });
-    const cities: DeliveryCity[] = citiesSnap.docs.map((snap) => {
+    const cityMap = new Map(DEFAULT_CITIES.map((city) => [city.name, city]));
+    for (const snap of citiesSnap.docs) {
       const d = snap.data();
-      return { id: snap.id, name: String(d.name ?? ""), price: Number(d.price), active: d.active !== false };
-    });
+      const name = String(d.name ?? "").trim();
+      if (!name || name === "Fes" || d.active === false) continue;
+      cityMap.set(name, {
+        id: snap.id,
+        name,
+        price: Number.isFinite(d.price) ? Math.trunc(d.price) : 60,
+        active: true,
+      });
+    }
+    const cities = [...cityMap.values()];
     const shop = readShop(shopSnap.exists ? shopSnap.data() ?? {} : {});
     const rules = readRules(rulesSnap.exists ? rulesSnap.data() ?? {} : {});
     const order = validateAndBuild(draft, products, cities, shop, rules);
