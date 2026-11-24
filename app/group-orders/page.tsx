@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import GroupOrderClient from "./GroupOrderClient";
-import SiteHeader from "@/components/SiteHeader";
+import GroupOrdersPageClient from "./GroupOrdersPageClient";
 
 export const metadata: Metadata = {
   title: "طلبات بدلات التخرج الجماعية في المغرب",
@@ -9,22 +8,4 @@ export const metadata: Metadata = {
   alternates: { canonical: "/group-orders" },
 };
 
-export default function GroupOrdersPage() {
-  return (
-    <div className="orderRoute" dir="rtl">
-      <SiteHeader />
-      <main className="utilityPage orderPage">
-      <section className="orderShell">
-        <header className="orderIntro">
-          <p className="eyebrow">للمجموعات والدفعات الجامعية</p>
-          <h1>طلب جماعي من 5 إلى 100 شخص</h1>
-          <p>
-            اختر الشراء أو الكراء، أدخل معلومات مسؤول المجموعة، ثم أرسل الطلب مباشرة.
-          </p>
-        </header>
-        <GroupOrderClient />
-      </section>
-      </main>
-    </div>
-  );
-}
+export default function GroupOrdersPage() { return <GroupOrdersPageClient />; }

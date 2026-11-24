@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { trackPublicOrder, type TrackingResult } from "@/lib/tracking";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const labels: Record<string, string> = {
   received: "تم استلام الطلب",
@@ -14,7 +15,14 @@ const labels: Record<string, string> = {
   cancelled: "ملغي",
 };
 
+const englishLabels: Record<string, string> = {
+  received: "Order received", review: "Under review", working: "In progress", printing: "Printing",
+  ready: "Ready", delivery: "Out for delivery", completed: "Delivered", cancelled: "Cancelled",
+};
+
 export default function TrackingClient() {
+  const { isArabic } = useLanguage();
+  const t = (ar: string, en: string) => isArabic ? ar : en;
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<TrackingResult[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -28,7 +36,7 @@ export default function TrackingClient() {
     try {
       setResults(await trackPublicOrder(query));
     } catch {
-      setError("تعذر الاتصال بخدمة التتبع الآن. حاول مرة أخرى.");
+      setError(t("تعذر الاتصال بخدمة التتبع الآن. حاول مرة أخرى.", "The tracking service is unavailable right now. Please try again."));
       setResults(null);
     } finally {
       setLoading(false);
@@ -38,35 +46,35 @@ export default function TrackingClient() {
   return (
     <>
       <form className="trackingForm" onSubmit={submit}>
-        <label htmlFor="tracking">رقم الطلب أو رقم الهاتف</label>
+        <label htmlFor="tracking">{t("رقم الطلب أو رقم الهاتف", "Order number or phone number")}</label>
         <input
           id="tracking"
           name="tracking"
           type="search"
           inputMode="search"
           autoComplete="off"
-          placeholder="GM-2026-000018 أو 06XXXXXXXX"
+          placeholder={t("GM-2026-000018 أو GRP-2026-ABCDEFGH أو 06XXXXXXXX", "GM-2026-000018, GRP-2026-ABCDEFGH or 06XXXXXXXX")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           maxLength={24}
         />
         <button type="submit" disabled={loading}>
-          {loading ? "جاري البحث…" : "بحث"}
+          {loading ? t("جاري البحث…", "Searching…") : t("بحث", "Search")}
         </button>
       </form>
 
       <div aria-live="polite">
         {error && <p className="formError">{error}</p>}
         {results?.length === 0 && (
-          <p className="emptyState">لم يتم العثور على طلب مطابق.</p>
+          <p className="emptyState">{t("لم يتم العثور على طلب مطابق.", "No matching order was found.")}</p>
         )}
         {results && results.length > 0 && (
           <div className="trackingResults">
             {results.map((order) => (
               <article className="trackingResult" key={order.orderNumber}>
                 <span className="trackingNumber">{order.orderNumber}</span>
-                <strong>{labels[order.status] ?? "حالة الطلب غير معروفة"}</strong>
-                <small>{order.orderType} · {order.productType}</small>
+                <strong>{(isArabic ? (labels[order.status] ?? "حالة الطلب غير معروفة") : (englishLabels[order.status] ?? "Unknown order status"))}</strong>
+                <small>{order.orderNumber.startsWith("GRP-") ? `${t("طلب جماعي", "Group order")} · ${order.quantity ?? "—"} ${t("أفراد", "people")}` : t("طلب فردي", "Individual order")} · {t(order.orderType, order.orderType === "شراء" ? "Purchase" : "Rental")} · {t(order.productType, order.productType === "fullOutfit" ? "Full outfit" : order.productType === "shawlAndCap" ? "Shawl and cap" : "Shawl only")}</small>
               </article>
             ))}
           </div>

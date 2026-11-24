@@ -1,8 +1,9 @@
 "use client";
 
-import { doc, serverTimestamp, setDoc, Timestamp } from "firebase/firestore";
+import { doc, runTransaction, serverTimestamp, Timestamp } from "firebase/firestore";
 import { DateTime } from "luxon";
 import { db } from "@/lib/firebase";
+import { loadDeliveryCities, loadOrderRules, loadProducts, loadShopSettings } from "@/lib/public-data";
 
 export type GroupPrintingOption = {
   enabled: boolean;
@@ -25,6 +26,8 @@ export type GroupOrderDraft = {
   membersExcelUrl?: string | null;
   membersExcelName?: string | null;
   productType: "fullOutfit" | "shawlAndCap";
+  fabric: "ساتان" | "موبرة";
+  shawlColor: string;
   rightShawl: GroupPrintingOption;
   leftShawl: GroupPrintingOption;
   backShawl: GroupPrintingOption;
@@ -51,6 +54,13 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
   const phone = draft.phoneNumber.replace(/\s+/g, "");
   const address = draft.address.trim();
   const notes = draft.notes.trim();
+  const [shop, rules, products, cities] = await Promise.all([
+    loadShopSettings(), loadOrderRules(), loadProducts(), loadDeliveryCities(),
+  ]);
+
+  if (shop.maintenanceMode || !shop.acceptingOrders) throw new Error("استقبال الطلبات متوقف مؤقتًا.");
+  if (draft.orderType === "شراء" && !shop.purchaseEnabled) throw new Error("طلبات الشراء متوقفة مؤقتًا.");
+  if (draft.orderType === "كراء" && !shop.rentalEnabled) throw new Error("طلبات الكراء متوقفة مؤقتًا.");
 
   if (quantity < 5) {
     throw new Error("الحد الأدنى للطلب الجماعي هو 5 أشخاص.");
@@ -68,6 +78,9 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
     throw new Error("أدخل رقم هاتف مغربي صحيح.");
   }
   if (!draft.city.trim()) throw new Error("اختر المدينة.");
+  if (draft.fabric !== "ساتان" && draft.fabric !== "موبرة") throw new Error("اختر نوع القماش.");
+  const shawlColor = draft.shawlColor.trim();
+  if (!shawlColor || shawlColor.length > 80) throw new Error("أدخل لون الوشاح بشكل صحيح.");
   if (draft.deliveryMethod === "homeDelivery" && address.length < 3) {
     throw new Error("أدخل عنوان التوصيل.");
   }
@@ -78,8 +91,13 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
     { zone: TZ },
   );
   if (!scheduled.isValid) throw new Error("موعد الطلب غير صالح.");
-  if (scheduled < DateTime.now().setZone(TZ).plus({ hours: 24 })) {
-    throw new Error("الطلب الجماعي يحتاج حجزًا قبل 24 ساعة على الأقل.");
+  const minimum = draft.orderType === "شراء"
+    ? DateTime.now().setZone(TZ).plus({ days: rules.purchasePreparationDays })
+    : DateTime.now().setZone(TZ).plus({ hours: rules.rentalAdvanceHours });
+  if (scheduled < minimum) {
+    throw new Error(draft.orderType === "شراء"
+      ? `الشراء الجماعي يحتاج ${rules.purchasePreparationDays} يوم/أيام على الأقل للتحضير.`
+      : `الكراء الجماعي يحتاج حجزًا مسبقًا بـ${rules.rentalAdvanceHours} ساعة على الأقل.`);
   }
 
   const members = draft.members.map((x) => x.trim()).filter(Boolean);
@@ -97,6 +115,24 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
       throw new Error("أحد أسماء الأفراد أطول من المسموح.");
     }
   }
+
+  const product = products.find((item) => item.productType === (draft.orderType === "كراء" ? "fullOutfit" : draft.productType));
+  if (!product) throw new Error("المنتج المحدد غير متاح حاليًا.");
+  const baseUnitPrice = draft.orderType === "شراء"
+    ? (draft.fabric === "ساتان" ? product.purchaseSatin : product.purchaseMoubara)
+    : (draft.fabric === "ساتان" ? product.rentalSatin : product.rentalMoubara);
+  const hasShawlPrinting = draft.rightShawl.enabled || draft.leftShawl.enabled || draft.backShawl.enabled;
+  const hasCapPrinting = draft.cap.enabled;
+  const printingUnitPrice = draft.orderType === "شراء"
+    ? (hasShawlPrinting ? 40 : 0) + (hasCapPrinting ? 40 : 0)
+    : 0;
+  const unitPriceApplied = baseUnitPrice + printingUnitPrice;
+  const deliveryCity = cities.find((item) => item.name === draft.city && item.active);
+  if (draft.deliveryMethod === "homeDelivery" && !deliveryCity) throw new Error("مدينة التوصيل المحددة غير متاحة حاليًا.");
+  const deliveryFeeApplied = draft.deliveryMethod === "pickup" ? 0 : (deliveryCity?.price ?? 0);
+  const deliveryPricingDocumentId = draft.deliveryMethod === "pickup" ? "" : (deliveryCity?.id ?? "");
+  const productTotalEstimate = unitPriceApplied * quantity;
+  const totalPriceEstimate = productTotalEstimate + deliveryFeeApplied;
 
   const number = makeCode();
   const returnAt = draft.orderType === "كراء" ? scheduled.plus({ hours: 24 }) : null;
@@ -135,7 +171,26 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
   const backShawl = isPurchase ? normalizePrinting(draft.backShawl) : disabledPrinting();
   const cap = isPurchase ? normalizePrinting(draft.cap) : disabledPrinting();
 
-  await setDoc(doc(db, "group_orders", number), {
+  const groupOrderRef = doc(db, "group_orders", number);
+  const trackingRef = doc(db, "order_tracking", number);
+  const phoneLookupRef = doc(db, "tracking_phone_lookup", phone);
+
+  await runTransaction(db, async (transaction) => {
+    const lookupSnap = await transaction.get(phoneLookupRef);
+    const existing = lookupSnap.exists() ? lookupSnap.data() : {};
+    const previous = new Set<string>();
+    const isTrackingNumber = (value: string) => /^GM-[0-9]{4}-[0-9]{6}$/.test(value) || /^GRP-[0-9]{4}-[A-HJ-NP-Z2-9]{8}$/.test(value);
+    if (Array.isArray(existing.orderNumbers)) {
+      existing.orderNumbers.forEach((item: unknown) => {
+        const value = String(item ?? "");
+        if (isTrackingNumber(value)) previous.add(value);
+      });
+    } else if (typeof existing.orderNumber === "string" && isTrackingNumber(existing.orderNumber)) {
+      previous.add(existing.orderNumber);
+    }
+    previous.add(number);
+
+    transaction.set(groupOrderRef, {
     groupOrderNumber: number,
     orderType: draft.orderType,
     quantity,
@@ -150,6 +205,9 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
     membersExcelUrl,
     membersExcelName,
     productType: isPurchase ? draft.productType : "fullOutfit",
+    catalogProductId: product.id,
+    fabric: draft.fabric,
+    shawlColor,
     rightShawl,
     leftShawl,
     backShawl,
@@ -157,9 +215,36 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
     referenceImages,
     customizationScope: "shared_group_design",
     notes,
+    unitPriceApplied,
+    productTotalEstimate,
+    deliveryFeeApplied,
+    deliveryPricingDocumentId,
+    totalPriceEstimate,
+    priceEstimateCurrency: "MAD",
+    priceEstimateBasis: "current_catalog_prices_no_group_discount",
+    purchasePreparationDaysApplied: rules.purchasePreparationDays,
+    rentalAdvanceHoursApplied: rules.rentalAdvanceHours,
     status: "received",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
+    });
+
+    transaction.set(trackingRef, {
+      orderNumber: number,
+      status: "received",
+      orderType: draft.orderType,
+      productType: isPurchase ? draft.productType : "fullOutfit",
+      quantity,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    transaction.set(phoneLookupRef, {
+      orderNumber: number,
+      latestOrderNumber: number,
+      orderNumbers: [...previous],
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
   });
 
   return number;

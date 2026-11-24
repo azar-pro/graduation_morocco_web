@@ -4,6 +4,8 @@ import { doc, getDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 const orderPattern = /^GM-[0-9]{4}-[0-9]{6}$/;
+const groupOrderPattern = /^GRP-[0-9]{4}-[A-HJ-NP-Z2-9]{8}$/;
+const trackingPattern = (value: string) => orderPattern.test(value) || groupOrderPattern.test(value);
 const phonePattern = /^(05|06|07)[0-9]{8}$/;
 
 export type TrackingResult = {
@@ -11,6 +13,7 @@ export type TrackingResult = {
   status: string;
   orderType: string;
   productType: string;
+  quantity?: number;
   createdAt?: Date;
 };
 
@@ -24,12 +27,12 @@ function readOrderNumbers(data: Record<string, unknown> | undefined): string[] {
   if (Array.isArray(data.orderNumbers)) {
     for (const item of data.orderNumbers) {
       const value = String(item ?? "").trim();
-      if (orderPattern.test(value)) values.add(value);
+      if (trackingPattern(value)) values.add(value);
     }
   }
   for (const key of ["latestOrderNumber", "orderNumber"]) {
     const value = String(data[key] ?? "").trim();
-    if (orderPattern.test(value)) values.add(value);
+    if (trackingPattern(value)) values.add(value);
   }
   return [...values];
 }
@@ -44,13 +47,14 @@ async function readTracking(orderNumber: string): Promise<TrackingResult | null>
     status: String(d.status ?? "received"),
     orderType: String(d.orderType ?? ""),
     productType: String(d.productType ?? ""),
+    quantity: typeof d.quantity === "number" ? d.quantity : undefined,
     createdAt,
   };
 }
 
 export async function trackPublicOrder(search: string): Promise<TrackingResult[]> {
   const value = search.trim().toUpperCase();
-  if (orderPattern.test(value)) {
+  if (trackingPattern(value)) {
     const direct = await readTracking(value);
     return direct ? [direct] : [];
   }
