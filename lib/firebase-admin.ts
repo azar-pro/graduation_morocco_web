@@ -34,7 +34,7 @@ function getAdminApp() {
   if (existing) return existing;
 
   const serviceAccount = getServiceAccount();
-  const data = serviceAccount as Record<string, unknown>;
+  const data = serviceAccount as unknown as { project_id: string };
   return initializeApp({
     credential: cert(serviceAccount),
     projectId: String(data.project_id),
