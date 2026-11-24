@@ -178,6 +178,7 @@ export async function POST(request: Request) {
     }
     const body = JSON.parse(rawBody) as { draft?: OrderDraft };
     const draft = body?.draft;
+    if (!draft) throw new Error("بيانات الطلب غير صالحة.");
     const db = getAdminFirestore();
 
     const [productsSnap, citiesSnap, shopSnap, rulesSnap] = await Promise.all([
@@ -200,8 +201,8 @@ export async function POST(request: Request) {
       const d = snap.data();
       return { id: snap.id, name: String(d.name ?? ""), price: Number(d.price), active: d.active !== false };
     });
-    const shop = readShop(shopSnap.exists ? shopSnap.data() : {});
-    const rules = readRules(rulesSnap.exists ? rulesSnap.data() : {});
+    const shop = readShop(shopSnap.exists ? shopSnap.data() ?? {} : {});
+    const rules = readRules(rulesSnap.exists ? rulesSnap.data() ?? {} : {});
     const order = validateAndBuild(draft, products, cities, shop, rules);
 
     const year = DateTime.now().setZone(TZ).year;
