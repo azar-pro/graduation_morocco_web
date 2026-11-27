@@ -246,6 +246,7 @@ export async function submitOrder(args: {
   cities: DeliveryCity[];
   shop: ShopSettings;
   rules: OrderRules;
+  idempotencyKey: string;
 }) {
   // Keep the immediate client-side feedback, but the server independently
   // reloads trusted catalog/settings and recalculates every amount.
@@ -254,7 +255,7 @@ export async function submitOrder(args: {
 
   const response = await fetch("/api/orders", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "Idempotency-Key": args.idempotencyKey },
     body: JSON.stringify({ draft: args.draft }),
   });
   const payload = await response.json().catch(() => ({})) as {
