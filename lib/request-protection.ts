@@ -56,7 +56,7 @@ export async function prepareRequestProtection(args: {
   windowMs: number;
 }): Promise<RequestProtection> {
   const { db, request, scope, rawBody, idempotencyKey, maxRequests, windowMs } = args;
-  if (!idempotencyKey || !/^[0-9a-f-]{36}$/i.test(idempotencyKey)) {
+  if (!idempotencyKey || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idempotencyKey)) {
     throw new RequestProtectionError("تعذر التحقق من محاولة الإرسال. حدّث الصفحة ثم أعد المحاولة.", 400);
   }
 
