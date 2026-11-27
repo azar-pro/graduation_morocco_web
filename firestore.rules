@@ -603,7 +603,16 @@ service cloud.firestore {
       allow create, read, update, delete: if isAdmin();
     }
 
-        match /order_number_counters/{yearId} {
+        // These server-only collections are inaccessible to public browser clients.
+    match /request_rate_limits/{documentId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /order_idempotency/{documentId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /order_number_counters/{yearId} {
       // The server allocates counters through Firebase Admin; clients never need to read them.
       allow get: if isAdmin();
       allow list: if isAdmin();
