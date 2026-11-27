@@ -185,17 +185,32 @@ export async function updateOrderPayment(args: {
   amountPaid: number;
   totalPrice: number;
 }) {
-  const safeTotal = Math.max(0, Number(args.totalPrice) || 0);
-  const safePaid = Math.min(safeTotal, Math.max(0, Number(args.amountPaid) || 0));
-  const remainingAmount = Math.max(0, safeTotal - safePaid);
+  const amountPaid = Number(args.amountPaid);
+  if (!Number.isSafeInteger(amountPaid) || amountPaid < 0) {
+    throw new Error("المبلغ المحصل يجب أن يكون عددًا صحيحًا موجبًا أو صفرًا.");
+  }
 
-  await updateDoc(doc(db, "orders", args.orderNumber), {
-    paymentMethod: args.paymentMethod,
-    paymentStatus: args.paymentStatus,
-    amountPaid: safePaid,
-    remainingAmount,
-    paymentUpdatedAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+  const ref = doc(db, "orders", args.orderNumber);
+  await runTransaction(db, async (transaction) => {
+    const snap = await transaction.get(ref);
+    if (!snap.exists()) throw new Error("الطلب غير موجود.");
+    const order = snap.data();
+    if (order.orderType === "كراء") throw new Error("لا يمكن تعديل دفعات طلب الكراء من هذه الشاشة.");
+    const total = Number(order.totalPrice);
+    if (!Number.isSafeInteger(total) || total < 0) {
+      throw new Error("إجمالي الطلب غير صالح؛ راجع بيانات الطلب.");
+    }
+    if (amountPaid > total) throw new Error("المبلغ المحصل لا يمكن أن يتجاوز إجمالي الطلب.");
+
+    const paymentStatus = amountPaid === 0 ? "pending" : amountPaid === total ? "paid" : "partial";
+    transaction.update(ref, {
+      paymentMethod: args.paymentMethod,
+      paymentStatus,
+      amountPaid,
+      remainingAmount: total - amountPaid,
+      paymentUpdatedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
   });
 }
 
