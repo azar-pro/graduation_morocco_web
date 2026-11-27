@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import AdminGuard from "../../AdminGuard";
@@ -316,7 +318,7 @@ function AdminOrderDetailContent() {
               <div className="adminImages">
                 {images.map((url) => (
                   <a href={url} target="_blank" rel="noreferrer" key={url}>
-                    <img src={url} alt="صورة مرجعية للطلب" />
+                    <Image src={url} alt="صورة مرجعية للطلب" width={1200} height={900} unoptimized />
                   </a>
                 ))}
               </div>
