@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { DateTime } from "luxon";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getAdminFirestore } from "@/lib/firebase-admin";
+import { prepareRequestProtection, readIdempotentResponse, RequestProtectionError, saveIdempotentResponse } from "@/lib/request-protection";
 import type { GroupOrderDraft, GroupPrintingOption } from "@/lib/group-orders";
 import type { PublicProduct } from "@/lib/order-types";
 
@@ -77,6 +78,16 @@ export async function POST(request: Request) {
     const backShawl = isPurchase ? printing(draft.backShawl) : disabled();
     const cap = isPurchase ? printing(draft.cap) : disabled();
     const db = getAdminFirestore();
+    const protection = await prepareRequestProtection({
+      db,
+      request,
+      scope: "group-order",
+      rawBody,
+      idempotencyKey: request.headers.get("idempotency-key"),
+      maxRequests: 3,
+      windowMs: 60 * 60 * 1000,
+    });
+    if (protection.replay) return NextResponse.json(protection.replay, { status: 200 });
     if (draft.fabric !== "ساتان" && draft.fabric !== "موبرة") throw new Error("اختر نوع القماش.");
     const shawlColor = String(draft.shawlColor ?? "").trim();
     if (!shawlColor || shawlColor.length > 80) throw new Error("أدخل لون الوشاح بشكل صحيح.");
@@ -158,7 +169,9 @@ export async function POST(request: Request) {
     const year = DateTime.now().setZone(TZ).year;
     const number = `GRP-${year}-${suffix}`;
     const returnAt = !isPurchase ? scheduled.plus({ hours: 24 }) : null;
-    await db.runTransaction(async (transaction) => {
+    const transactionResult = await db.runTransaction(async (transaction) => {
+      const cached = await readIdempotentResponse(transaction, protection);
+      if (cached) return { response: cached, replay: true as const };
       const ref = db.doc(`group_orders/${number}`);
       const trackingRef = db.doc(`order_tracking/${number}`);
       const phoneLookupRef = db.doc(`tracking_phone_lookup/${phone}`);
@@ -207,9 +220,18 @@ export async function POST(request: Request) {
         orderNumbers: [...new Set([...previous, number])],
         updatedAt: FieldValue.serverTimestamp(),
       }, { merge: true });
+      const response = { groupOrderNumber: number };
+      saveIdempotentResponse(transaction, protection, response);
+      return { response, replay: false as const };
     });
-    return NextResponse.json({ groupOrderNumber: number }, { status: 201 });
+    return NextResponse.json(transactionResult.response, { status: transactionResult.replay ? 200 : 201 });
   } catch (error) {
+    if (error instanceof RequestProtectionError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status, ...(error.retryAfterSeconds ? { headers: { "Retry-After": String(error.retryAfterSeconds) } } : {}) },
+      );
+    }
     const message = error instanceof Error ? error.message : "تعذر إرسال الطلب الجماعي.";
     const status = /not configured|service-account/i.test(message) ? 503 : 400;
     return NextResponse.json({ error: status === 503 ? "الخادم غير مكتمل الإعداد بعد." : message }, { status });

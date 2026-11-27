@@ -26,7 +26,14 @@ try {
     totalPrice: 1,
   }));
 
-  console.log("[rules-test] block direct public order counter creation");
+  console.log("[rules-test] block public request protection state access");
+  await assertFails(getDoc(doc(publicDb, "request_rate_limits", "test")));
+  await assertFails(setDoc(doc(publicDb, "request_rate_limits", "test"), { count: 1 }));
+  await assertFails(getDoc(doc(publicDb, "order_idempotency", "test")));
+  await assertFails(setDoc(doc(publicDb, "order_idempotency", "test"), { response: {} }));
+
+  console.log("[rules-test] block public counter reads and writes");
+  await assertFails(getDoc(doc(publicDb, "order_number_counters", "2026")));
   await assertFails(setDoc(doc(publicDb, "order_number_counters", "2026"), {
     lastNumber: 18,
     lastOrderNumber: orderNumber,
@@ -49,6 +56,7 @@ try {
 
   console.log("[rules-test] public tracking lookup remains available by order number");
   await assertSucceeds(getDoc(doc(publicDb, "order_tracking", orderNumber)));
+  await assertSucceeds(getDoc(doc(publicDb, "order_tracking", groupNumber)));
   await assertFails(getDoc(doc(publicDb, "order_tracking", "not-an-order-number")));
   await assertFails(getDoc(doc(publicDb, "tracking_phone_lookup", "0612345678")));
   await assertFails(getDocs(collection(publicDb, "group_orders")));

@@ -16,17 +16,17 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24.22.1
           cache: npm
-          cache-dependency-path: package.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
-        run: npm install --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
+      - name: Install locked dependencies
+        run: npm ci --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
 
       - name: Dependency security audit
         run: |
           npm audit --json > npm-audit.json || true
-          node -e 'const a=require("./npm-audit.json"); console.log(JSON.stringify({metadata:a.metadata?.vulnerabilities, advisories:Object.entries(a.vulnerabilities||{}).map(([name,v])=>({name,severity:v.severity,isDirect:v.isDirect,range:v.range,fixAvailable:v.fixAvailable,via:v.via.map(x=>typeof x==="string"?x:{name:x.name,title:x.title,url:x.url,range:x.range})}))},null,2))'
+          node -e 'const a=require("./npm-audit.json"); console.log(JSON.stringify({metadata:a.metadata?.vulnerabilities, advisories:Object.entries(a.vulnerabilities||{}).map(([name,v])=>({name,severity:v.severity,range:v.range,fixAvailable:v.fixAvailable,via:v.via.map(x=>typeof x==="string"?x:{name:x.name,title:x.title,url:x.url,range:x.range})}))},null,2)); if ((a.metadata?.vulnerabilities?.high ?? 0) > 0 || (a.metadata?.vulnerabilities?.critical ?? 0) > 0) process.exit(1)'
 
       - name: Setup Java for Firebase Emulator
         uses: actions/setup-java@v5
@@ -36,6 +36,9 @@ jobs:
 
       - name: Firestore rules tests
         run: npm run test:rules
+
+      - name: Request protection tests
+        run: npm run test:protection
 
       - name: Lint
         run: npm run lint

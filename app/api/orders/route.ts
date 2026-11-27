@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { DateTime } from "luxon";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getAdminFirestore } from "@/lib/firebase-admin";
+import { prepareRequestProtection, readIdempotentResponse, RequestProtectionError, saveIdempotentResponse } from "@/lib/request-protection";
 import type { OrderDraft, PrintingOption } from "@/lib/order-service";
 import type { DeliveryCity, OrderRules, PublicProduct, ShopSettings } from "@/lib/order-types";
 
@@ -198,6 +199,16 @@ export async function POST(request: Request) {
     const draft = body?.draft;
     if (!draft) throw new Error("بيانات الطلب غير صالحة.");
     const db = getAdminFirestore();
+    const protection = await prepareRequestProtection({
+      db,
+      request,
+      scope: "individual-order",
+      rawBody,
+      idempotencyKey: request.headers.get("idempotency-key"),
+      maxRequests: 5,
+      windowMs: 15 * 60 * 1000,
+    });
+    if (protection.replay) return NextResponse.json(protection.replay, { status: 200 });
 
     const [productsSnap, citiesSnap, shopSnap, rulesSnap] = await Promise.all([
       db.collection("products").get(),
@@ -234,7 +245,9 @@ export async function POST(request: Request) {
 
     const year = DateTime.now().setZone(TZ).year;
     const counterRef = db.doc(`order_number_counters/${year}`);
-    const result = await db.runTransaction(async (transaction) => {
+    const transactionResult = await db.runTransaction(async (transaction) => {
+      const cached = await readIdempotentResponse(transaction, protection);
+      if (cached) return { response: cached, replay: true as const };
       const counterSnap = await transaction.get(counterRef);
       const initial = year === 2026 ? 17 : 0;
       const stored = counterSnap.exists ? Number(counterSnap.data()?.lastNumber ?? initial) : initial;
@@ -308,14 +321,22 @@ export async function POST(request: Request) {
         lastNumber: next, lastOrderNumber: number, reconciledWithSavedOrders: true,
         updatedAt: FieldValue.serverTimestamp(),
       }, { merge: true });
-      return { orderNumber: number, quote: {
+      const response = { orderNumber: number, quote: {
         productPrice: order.productPrice, deliveryFee: order.deliveryFee, total: order.total,
         rentalSecurityDeposit: order.rentalSecurityDeposit,
         amountDueNow: isRental ? order.rentalSecurityDeposit + order.deliveryFee : order.total,
       }};
+      saveIdempotentResponse(transaction, protection, response);
+      return { response, replay: false as const };
     });
-    return NextResponse.json(result, { status: 201 });
+    return NextResponse.json(transactionResult.response, { status: transactionResult.replay ? 200 : 201 });
   } catch (error) {
+    if (error instanceof RequestProtectionError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status, ...(error.retryAfterSeconds ? { headers: { "Retry-After": String(error.retryAfterSeconds) } } : {}) },
+      );
+    }
     const message = error instanceof Error ? error.message : "تعذر إرسال الطلب.";
     const status = /not configured|service-account/i.test(message) ? 503 : 400;
     return NextResponse.json({ error: status === 503 ? "الخادم غير مكتمل الإعداد بعد." : message }, { status });

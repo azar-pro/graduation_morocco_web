@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState, type ReactNode } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DateTime } from "luxon";
 import {
   DEFAULT_CITIES,
@@ -63,6 +63,7 @@ export default function OrderClient() {
   const [success, setSuccess] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [expandedPrinting, setExpandedPrinting] = useState<"rightShawl" | "leftShawl" | "backShawl" | "cap" | null>(null);
+  const submissionRef = useRef<{ fingerprint: string; key: string } | null>(null);
 
   useEffect(() => {
     Promise.all([loadProducts(), loadDeliveryCities(), loadShopSettings(), loadOrderRules()])
@@ -135,7 +136,14 @@ export default function OrderClient() {
     setSubmitting(true);
     setMessage("");
     try {
-      const result = await submitOrder({ draft, products, cities, shop, rules });
+      const fingerprint = JSON.stringify(draft);
+      if (!submissionRef.current || submissionRef.current.fingerprint !== fingerprint) {
+        submissionRef.current = { fingerprint, key: crypto.randomUUID() };
+      }
+      const result = await submitOrder({
+        draft, products, cities, shop, rules,
+        idempotencyKey: submissionRef.current.key,
+      });
       setSuccess(result.orderNumber);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "تعذر إرسال الطلب.");

@@ -15,7 +15,10 @@ service cloud.firestore {
 
     function validOrderNumber(value) {
       return value is string
-          && value.matches('^GM-[0-9]{4}-[0-9]{6}$');
+          && (
+            value.matches('^GM-[0-9]{4}-[0-9]{6}$')
+            || value.matches('^GRP-[0-9]{4}-[A-HJ-NP-Z2-9]{8}$')
+          );
     }
 
     function validHttpsUrl(value) {
@@ -600,8 +603,18 @@ service cloud.firestore {
       allow create, read, update, delete: if isAdmin();
     }
 
-        match /order_number_counters/{yearId} {
-      allow get: if true;
+        // These server-only collections are inaccessible to public browser clients.
+    match /request_rate_limits/{documentId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /order_idempotency/{documentId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /order_number_counters/{yearId} {
+      // The server allocates counters through Firebase Admin; clients never need to read them.
+      allow get: if isAdmin();
       allow list: if isAdmin();
       // Sequence allocation is performed atomically by the server API.
       allow create, update, delete: if isAdmin();
