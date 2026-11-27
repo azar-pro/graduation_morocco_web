@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test:rules": "firebase emulators:exec --only firestore --project demo-graduation-morocco \"node scripts/firestore-rules.test.mjs\""
+    "test:rules": "firebase emulators:exec --only firestore --project demo-graduation-morocco \"node scripts/firestore-rules.test.mjs\"",
+    "test:protection": "firebase emulators:exec --only firestore --project demo-graduation-morocco \"node --experimental-strip-types scripts/request-protection.test.ts\""
   },
   "dependencies": {
     "firebase": "13.4.0",
