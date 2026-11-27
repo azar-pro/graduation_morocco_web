@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import AdminGuard from "../../AdminGuard";
@@ -158,7 +160,7 @@ function AdminGroupOrderDetailContent(){
                 <h2>الصور المرجعية</h2>
                 {Array.isArray(order.referenceImages) && order.referenceImages.length ? (
                   <div className="adminGroupReferenceGrid">
-                    {(order.referenceImages as string[]).map((url,index)=><a key={url} href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`الصورة المرجعية ${index+1}`} /><span>عرض الصورة {index+1}</span></a>)}
+                    {(order.referenceImages as string[]).map((url,index)=><a key={url} href={url} target="_blank" rel="noopener noreferrer"><Image src={url} alt={`الصورة المرجعية ${index+1}`} width={1200} height={900} unoptimized /><span>عرض الصورة {index+1}</span></a>)}
                   </div>
                 ) : <p>لا توجد صور مرجعية مرفقة.</p>}
               </section>
