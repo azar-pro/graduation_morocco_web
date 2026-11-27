@@ -45,7 +45,7 @@ export default function TrackingClient() {
           type="search"
           inputMode="search"
           autoComplete="off"
-          placeholder="GM-2026-000018"
+          placeholder="GM-2026-000018 أو GRP-2026-ABCDEFG2"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           maxLength={15}

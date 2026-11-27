@@ -3,7 +3,7 @@
 import { doc, getDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-const orderPattern = /^GM-[0-9]{4}-[0-9]{6}$/;
+const orderPattern = /^(GM-[0-9]{4}-[0-9]{6}|GRP-[0-9]{4}-[A-HJ-NP-Z2-9]{8})$/;
 
 export type TrackingResult = {
   orderNumber: string;

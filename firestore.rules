@@ -15,7 +15,10 @@ service cloud.firestore {
 
     function validOrderNumber(value) {
       return value is string
-          && value.matches('^GM-[0-9]{4}-[0-9]{6}$');
+          && (
+            value.matches('^GM-[0-9]{4}-[0-9]{6}$')
+            || value.matches('^GRP-[0-9]{4}-[A-HJ-NP-Z2-9]{8}$')
+          );
     }
 
     function validHttpsUrl(value) {
@@ -601,7 +604,8 @@ service cloud.firestore {
     }
 
         match /order_number_counters/{yearId} {
-      allow get: if true;
+      // The server allocates counters through Firebase Admin; clients never need to read them.
+      allow get: if isAdmin();
       allow list: if isAdmin();
       // Sequence allocation is performed atomically by the server API.
       allow create, update, delete: if isAdmin();
