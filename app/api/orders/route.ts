@@ -138,6 +138,7 @@ function validateAndBuild(draft: OrderDraft, products: PublicProduct[], cities: 
   const hasShawlPrinting = rightShawl.enabled || leftShawl.enabled || backShawl.enabled;
   const hasCapPrinting = draft.productType !== "shawlOnly" && cap.enabled;
   const productPrice = basePrice + (draft.orderType === "شراء" ? (hasShawlPrinting ? 40 : 0) + (hasCapPrinting ? 40 : 0) : 0);
+  if (!Number.isSafeInteger(productPrice) || productPrice < 0) throw new Error("إجمالي سعر المنتج غير صالح.");
   let deliveryFee = 0, deliveryDocumentId = "";
   if (draft.deliveryMethod === "homeDelivery") {
     if (cityName === "Fes") {
@@ -154,6 +155,7 @@ function validateAndBuild(draft: OrderDraft, products: PublicProduct[], cities: 
     ? (draft.fabric === "ساتان" ? shop.rentalSecurityDepositSatin : shop.rentalSecurityDepositMoubara)
     : 0;
   const total = productPrice + deliveryFee;
+  if (!Number.isSafeInteger(total) || total < 0) throw new Error("إجمالي الطلب خارج النطاق المسموح.");
 
   if (draft.paymentMethod === "cash_at_store") {
     if (!shop.cashAtStoreEnabled || draft.deliveryMethod !== "pickup" || cityName !== "Fes") throw new Error("الدفع نقدًا عند المحل غير متاح لهذا الطلب.");
@@ -247,7 +249,10 @@ export async function POST(request: Request) {
       const deadlineHours = Math.max(1, Math.min(720, shop.paymentDeadlineHours));
       const depositPercentage = Math.max(1, Math.min(100, shop.depositPercentage));
       const depositAmount = isRental || draft.bankTransferPlan !== "deposit" || !isProofPayment
-        ? null : order.total * depositPercentage / 100;
+        ? null : Math.round(order.total * depositPercentage / 100);
+      if (depositAmount !== null && (!Number.isSafeInteger(depositAmount) || depositAmount < 0 || depositAmount > order.total)) {
+        throw new Error("قيمة التسبيق المحسوبة غير صالحة.");
+      }
       const orderData: Record<string, unknown> = {
         orderNumber: number, orderYear: String(year), orderSequenceNumber: next,
         status: "received", paymentStatus: "pending", paymentMethod: draft.paymentMethod,
