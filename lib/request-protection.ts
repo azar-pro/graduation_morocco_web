@@ -63,7 +63,7 @@ export async function prepareRequestProtection(args: {
   const addressHash = sha256(clientAddress(request));
   const payloadHash = sha256(rawBody);
   const idempotencyRef = db.collection("order_idempotency")
-    .doc(sha256(`${scope}:${addressHash}:${idempotencyKey}`));
+    .doc(sha256(`${scope}:${idempotencyKey}`));
 
   const existing = await idempotencyRef.get();
   if (existing.exists) {
