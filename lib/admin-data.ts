@@ -94,8 +94,12 @@ export async function settleGroupRentalReturn(args: { groupOrderNumber: string; 
     if (!Number.isSafeInteger(deposit) || deposit < 0 || !Number.isSafeInteger(rentalFee) || rentalFee < 0) {
       throw new Error("بيانات مبالغ الكراء غير صالحة؛ راجع الطلب قبل التسوية.");
     }
-    const refund = Math.max(0, deposit - rentalFee - damage);
-    const additionalDue = Math.max(0, rentalFee + damage - deposit);
+    const deductions = rentalFee + damage;
+    if (!Number.isSafeInteger(deductions)) {
+      throw new Error("إجمالي الكراء والضرر خارج النطاق المسموح.");
+    }
+    const refund = Math.max(0, deposit - deductions);
+    const additionalDue = Math.max(0, deductions - deposit);
     transaction.update(ref, {
       rentalReturnStatus: "returned",
       rentalReturnedAt: serverTimestamp(),
@@ -158,6 +162,9 @@ export async function settleRentalReturn(args: { orderNumber: string; damageDedu
       throw new Error("بيانات مبالغ الكراء غير صالحة؛ راجع الطلب قبل التسوية.");
     }
     const deductions = rentalFee + damage;
+    if (!Number.isSafeInteger(deductions)) {
+      throw new Error("إجمالي الكراء والضرر خارج النطاق المسموح.");
+    }
     const refund = Math.max(0, deposit - deductions);
     const additionalDue = Math.max(0, deductions - deposit);
 
