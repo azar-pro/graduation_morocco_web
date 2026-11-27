@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import { FormEvent, useMemo, useState } from "react";
 import { DateTime } from "luxon";
 import { submitGroupOrder, type GroupOrderDraft, type GroupPrintingOption } from "@/lib/group-orders";
@@ -347,7 +349,7 @@ export default function GroupOrderClient() {
               <div className="referenceList">
                 {draft.referenceImages.map((url, index) => (
                   <div className="groupReferenceItem" key={url}>
-                    <a href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`الصورة المرجعية ${index + 1}`} />عرض الصورة {index + 1}</a>
+                    <a href={url} target="_blank" rel="noopener noreferrer"><Image src={url} alt={`الصورة المرجعية ${index + 1}`} width={1200} height={900} unoptimized />عرض الصورة {index + 1}</a>
                     <button type="button" onClick={() => setDraft((d) => ({ ...d, referenceImages: d.referenceImages.filter((_, i) => i !== index) }))}>حذف ×</button>
                   </div>
                 ))}
