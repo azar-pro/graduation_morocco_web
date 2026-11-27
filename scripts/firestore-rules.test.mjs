@@ -26,6 +26,12 @@ try {
     totalPrice: 1,
   }));
 
+  console.log("[rules-test] block public request protection state access");
+  await assertFails(getDoc(doc(publicDb, "request_rate_limits", "test")));
+  await assertFails(setDoc(doc(publicDb, "request_rate_limits", "test"), { count: 1 }));
+  await assertFails(getDoc(doc(publicDb, "order_idempotency", "test")));
+  await assertFails(setDoc(doc(publicDb, "order_idempotency", "test"), { response: {} }));
+
   console.log("[rules-test] block public counter reads and writes");
   await assertFails(getDoc(doc(publicDb, "order_number_counters", "2026")));
   await assertFails(setDoc(doc(publicDb, "order_number_counters", "2026"), {
