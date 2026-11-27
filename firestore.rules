@@ -596,55 +596,22 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
-      allow create: if request.resource.data.orderNumber == orderId
-        && validOrderNumber(orderId)
-        && request.resource.data.orderYear is string
-        && request.resource.data.orderYear.matches('^[0-9]{4}$')
-        && request.resource.data.orderNumber.matches('^GM-' + request.resource.data.orderYear + '-[0-9]{6}$')
-        && validOrderCounterLink(request.resource.data, orderId)
-        && request.resource.data.status == 'received'
-        && request.resource.data.trackingPhoneKey is string
-        && request.resource.data.orderType is string
-        && request.resource.data.urgentOrder is bool
-        && validOrderContent(request.resource.data)
-        && shopAllowsNewOrder(request.resource.data.orderType)
-        && orderRulesAllowSchedule(request.resource.data)
-        && validOrderAmounts(request.resource.data)
-        && shopAllowsPayment(request.resource.data);
-      allow read, update, delete: if isAdmin();
+      // Public clients must submit through the trusted server API.
+      allow create, read, update, delete: if isAdmin();
     }
 
         match /order_number_counters/{yearId} {
       allow get: if true;
       allow list: if isAdmin();
-      allow create: if isAdmin() || (
-        request.resource.data.lastNumber is int
-        && ((yearId == '2026' && request.resource.data.lastNumber == 18)
-          || (yearId != '2026' && request.resource.data.lastNumber == 1))
-        && validPublicCounterLink(yearId, request.resource.data)
-      );
-      allow update: if isAdmin() || (
-        request.resource.data.lastNumber is int
-        && request.resource.data.lastNumber == resource.data.lastNumber + 1
-        && validPublicCounterLink(yearId, request.resource.data)
-      );
-      allow delete: if isAdmin();
+      // Sequence allocation is performed atomically by the server API.
+      allow create, update, delete: if isAdmin();
     }
 
         match /order_tracking/{orderId} {
+      // Public tracking remains read-only by order number.
       allow get: if validOrderNumber(orderId);
       allow list: if isAdmin();
-      allow create: if request.resource.data.keys().hasOnly([
-          'orderNumber','status','orderType','productType','createdAt','paymentDeadlineHoursApplied','updatedAt'
-        ])
-        && request.resource.data.orderNumber == orderId && validOrderNumber(orderId)
-        && request.resource.data.status == 'received'
-        && request.resource.data.orderType in ['شراء','كراء']
-        && request.resource.data.productType in ['fullOutfit','shawlAndCap','shawlOnly']
-        && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time
-        && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.orderNumber == orderId
-        && getAfter(/databases/$(database)/documents/orders/$(orderId)).data.status == 'received';
-      allow update, delete: if isAdmin();
+      allow create, update, delete: if isAdmin();
     }
 
         match /tracking_phone_lookup/{phoneKey} {
@@ -653,8 +620,7 @@ service cloud.firestore {
 
     match /group_orders/{groupOrderId} {
       allow get, list: if isAdmin();
-      allow create: if validGroupOrder(request.resource.data, groupOrderId);
-      allow update, delete: if isAdmin();
+      allow create, update, delete: if isAdmin();
     }
 
         match /{document=**} {

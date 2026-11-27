@@ -1,8 +1,6 @@
 "use client";
 
-import { doc, serverTimestamp, setDoc, Timestamp } from "firebase/firestore";
 import { DateTime } from "luxon";
-import { db } from "@/lib/firebase";
 
 export type GroupPrintingOption = {
   enabled: boolean;
@@ -25,6 +23,8 @@ export type GroupOrderDraft = {
   membersExcelUrl?: string | null;
   membersExcelName?: string | null;
   productType: "fullOutfit" | "shawlAndCap";
+  fabric: "ساتان" | "موبرة";
+  shawlColor: string;
   rightShawl: GroupPrintingOption;
   leftShawl: GroupPrintingOption;
   backShawl: GroupPrintingOption;
@@ -35,22 +35,16 @@ export type GroupOrderDraft = {
 
 const TZ = "Africa/Casablanca";
 const phonePattern = /^(05|06|07)[0-9]{8}$/;
+const disabledPrinting = (): GroupPrintingOption => ({
+  enabled: false, type: "", text: "", logoPath: null,
+});
 
-function makeCode() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const random = Array.from(crypto.getRandomValues(new Uint8Array(8)))
-    .map((value) => chars[value % chars.length])
-    .join("");
-  const year = DateTime.now().setZone(TZ).year;
-  return `GRP-${year}-${random}`;
-}
 
 export async function submitGroupOrder(draft: GroupOrderDraft) {
   const quantity = Math.trunc(draft.quantity);
   const name = draft.responsibleName.trim();
   const phone = draft.phoneNumber.replace(/\s+/g, "");
   const address = draft.address.trim();
-  const notes = draft.notes.trim();
 
   if (quantity < 5) {
     throw new Error("الحد الأدنى للطلب الجماعي هو 5 أشخاص.");
@@ -98,12 +92,6 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
     }
   }
 
-  const number = makeCode();
-  const returnAt = draft.orderType === "كراء" ? scheduled.plus({ hours: 24 }) : null;
-
-  const disabledPrinting = (): GroupPrintingOption => ({
-    enabled: false, type: "", text: "", logoPath: null,
-  });
   const normalizePrinting = (option: GroupPrintingOption): GroupPrintingOption => {
     if (!option.enabled) return disabledPrinting();
     const text = option.text.trim();
@@ -130,37 +118,24 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
   if (referenceImages.length > 8 || referenceImages.some((url) => !url.startsWith("https://"))) {
     throw new Error("يمكن رفع حتى 8 صور مرجعية صالحة.");
   }
-  const rightShawl = isPurchase ? normalizePrinting(draft.rightShawl) : disabledPrinting();
-  const leftShawl = isPurchase ? normalizePrinting(draft.leftShawl) : disabledPrinting();
-  const backShawl = isPurchase ? normalizePrinting(draft.backShawl) : disabledPrinting();
-  const cap = isPurchase ? normalizePrinting(draft.cap) : disabledPrinting();
+  if (isPurchase) {
+    normalizePrinting(draft.rightShawl);
+    normalizePrinting(draft.leftShawl);
+    normalizePrinting(draft.backShawl);
+    normalizePrinting(draft.cap);
+  }
 
-  await setDoc(doc(db, "group_orders", number), {
-    groupOrderNumber: number,
-    orderType: draft.orderType,
-    quantity,
-    responsibleName: name,
-    phoneNumber: phone,
-    city: draft.city.trim(),
-    deliveryMethod: draft.deliveryMethod,
-    address: draft.deliveryMethod === "pickup" ? "" : address,
-    scheduledAt: Timestamp.fromDate(scheduled.toUTC().toJSDate()),
-    returnAt: returnAt ? Timestamp.fromDate(returnAt.toUTC().toJSDate()) : null,
-    members: draft.orderType === "شراء" && !membersExcelUrl ? members : [],
-    membersExcelUrl,
-    membersExcelName,
-    productType: isPurchase ? draft.productType : "fullOutfit",
-    rightShawl,
-    leftShawl,
-    backShawl,
-    cap,
-    referenceImages,
-    customizationScope: "shared_group_design",
-    notes,
-    status: "received",
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+  const response = await fetch("/api/group-orders", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ draft }),
   });
-
-  return number;
+  const payload = await response.json().catch(() => ({})) as {
+    groupOrderNumber?: string;
+    error?: string;
+  };
+  if (!response.ok || !payload.groupOrderNumber) {
+    throw new Error(payload.error || "تعذر إرسال الطلب الجماعي.");
+  }
+  return payload.groupOrderNumber;
 }

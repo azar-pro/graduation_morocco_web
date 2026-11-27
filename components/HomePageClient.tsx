@@ -309,6 +309,7 @@ export default function HomePageClient() {
         <div className="appFooterBottom">
           <p>© 2026 Graduation Morocco. {isArabic ? "جميع الحقوق محفوظة." : "All rights reserved."}</p>
           <p className="appFooterCredit">{t.footerCredit} <span>MAQTA Studio</span></p>
+          <Link className="appFooterAdminLink" href="/admin/login">{isArabic ? "دخول الإدارة" : "Admin login"}</Link>
         </div>
       </footer>
 
