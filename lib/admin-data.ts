@@ -46,12 +46,23 @@ export async function loadAdminGroupOrders(max = 100): Promise<AdminGroupOrder[]
 }
 
 export async function updateOrderStatus(orderNumber: string, status: string) {
-  await updateDoc(doc(db, "orders", orderNumber), { status, updatedAt: serverTimestamp() });
-  await updateDoc(doc(db, "order_tracking", orderNumber), { status, updatedAt: serverTimestamp() });
+  const allowedStatuses = ["received", "review", "working", "printing", "ready", "delivery", "completed", "cancelled"];
+  if (!allowedStatuses.includes(status)) throw new Error("حالة الطلب غير صالحة.");
+  const batch = writeBatch(db);
+  const update = { status, updatedAt: serverTimestamp() };
+  batch.update(doc(db, "orders", orderNumber), update);
+  batch.update(doc(db, "order_tracking", orderNumber), update);
+  await batch.commit();
 }
 
 export async function updateGroupOrderStatus(groupOrderNumber: string, status: string) {
-  await updateDoc(doc(db, "group_orders", groupOrderNumber), { status, updatedAt: serverTimestamp() });
+  const allowedStatuses = ["received", "review", "working", "printing", "ready", "delivery", "completed", "cancelled"];
+  if (!allowedStatuses.includes(status)) throw new Error("حالة الطلب غير صالحة.");
+  const batch = writeBatch(db);
+  const update = { status, updatedAt: serverTimestamp() };
+  batch.update(doc(db, "group_orders", groupOrderNumber), update);
+  batch.update(doc(db, "order_tracking", groupOrderNumber), update);
+  await batch.commit();
 }
 
 
