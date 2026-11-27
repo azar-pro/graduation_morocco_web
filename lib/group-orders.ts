@@ -40,7 +40,7 @@ const disabledPrinting = (): GroupPrintingOption => ({
 });
 
 
-export async function submitGroupOrder(draft: GroupOrderDraft) {
+export async function submitGroupOrder(draft: GroupOrderDraft, idempotencyKey: string) {
   const quantity = Math.trunc(draft.quantity);
   const name = draft.responsibleName.trim();
   const phone = draft.phoneNumber.replace(/\s+/g, "");
@@ -127,7 +127,7 @@ export async function submitGroupOrder(draft: GroupOrderDraft) {
 
   const response = await fetch("/api/group-orders", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
     body: JSON.stringify({ draft }),
   });
   const payload = await response.json().catch(() => ({})) as {
