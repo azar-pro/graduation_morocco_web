@@ -51,14 +51,8 @@ function AdminDashboardContent({ profile }: { profile: AdminProfile }) {
   }, []);
 
   useEffect(() => {
-    Promise.all([loadAdminOrders(), loadAdminGroupOrders()])
-      .then(([o, g]) => {
-        setOrders(o);
-        setGroups(g);
-      })
-      .catch(() => setMessage("تعذر تحميل بيانات لوحة الإدارة."))
-      .finally(() => setLoading(false));
-  }, []);
+    void refresh();
+  }, [refresh]);
 
   const filteredOrders = useMemo(() => {
     const q = search.trim().toLowerCase();
