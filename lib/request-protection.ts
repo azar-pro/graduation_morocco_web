@@ -11,13 +11,14 @@ import {
 const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000;
 
 export class RequestProtectionError extends Error {
-  constructor(
-    message: string,
-    public readonly status: 400 | 409 | 429,
-    public readonly retryAfterSeconds?: number,
-  ) {
+  readonly status: 400 | 409 | 429;
+  readonly retryAfterSeconds?: number;
+
+  constructor(message: string, status: 400 | 409 | 429, retryAfterSeconds?: number) {
     super(message);
     this.name = "RequestProtectionError";
+    this.status = status;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
