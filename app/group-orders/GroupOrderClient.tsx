@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useRef, useState } from "react";
 import { DateTime } from "luxon";
 import { submitGroupOrder, type GroupOrderDraft, type GroupPrintingOption } from "@/lib/group-orders";
 import { uploadGraduationImage } from "@/lib/image-upload";
@@ -36,6 +36,7 @@ const initial: GroupOrderDraft = {
 export default function GroupOrderClient() {
   const [draft, setDraft] = useState<GroupOrderDraft>(initial);
   const [submitting, setSubmitting] = useState(false);
+  const submissionRef = useRef<{ fingerprint: string; key: string } | null>(null);
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -81,7 +82,12 @@ export default function GroupOrderClient() {
     setSubmitting(true);
     setMessage("");
     try {
-      const number = await submitGroupOrder({ ...draft, membersExcelUrl: excelFile?.url ?? null, membersExcelName: excelFile?.name ?? null });
+      const requestDraft = { ...draft, membersExcelUrl: excelFile?.url ?? null, membersExcelName: excelFile?.name ?? null };
+      const fingerprint = JSON.stringify(requestDraft);
+      if (!submissionRef.current || submissionRef.current.fingerprint !== fingerprint) {
+        submissionRef.current = { fingerprint, key: crypto.randomUUID() };
+      }
+      const number = await submitGroupOrder(requestDraft, submissionRef.current.key);
       setSuccess(number);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "تعذر إرسال الطلب الجماعي.");
