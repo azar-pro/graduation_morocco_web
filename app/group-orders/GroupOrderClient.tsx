@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import { FormEvent, useMemo, useState } from "react";
 import { DateTime } from "luxon";
 import { submitGroupOrder, type GroupOrderDraft, type GroupPrintingOption } from "@/lib/group-orders";
@@ -21,6 +23,8 @@ const initial: GroupOrderDraft = {
   deliveryTime: "12:00",
   members: Array(5).fill(""),
   productType: "fullOutfit",
+  fabric: "ساتان",
+  shawlColor: "ذهبي",
   rightShawl: { enabled: false, type: "", text: "", logoPath: null },
   leftShawl: { enabled: false, type: "", text: "", logoPath: null },
   backShawl: { enabled: false, type: "", text: "", logoPath: null },
@@ -44,7 +48,7 @@ export default function GroupOrderClient() {
   );
 
   function changeQuantity(value: number) {
-    const quantity = Math.max(1, Math.trunc(value || 1));
+    const quantity = Math.min(100, Math.max(5, Math.trunc(Number.isFinite(value) ? value : 5)));
     setDraft((d) => ({
       ...d,
       quantity,
@@ -149,7 +153,9 @@ export default function GroupOrderClient() {
             عدد الأفراد
             <input
               type="number"
-              min={1}
+              min={5}
+              max={100}
+              step={1}
               value={draft.quantity}
               onChange={(e) => changeQuantity(Number(e.target.value))}
               required
@@ -179,18 +185,28 @@ export default function GroupOrderClient() {
         </div>
       </section>
 
-      {draft.orderType === "شراء" && (
-        <section className="formSection">
-          <h2>3. المنتج</h2>
-          <p className="sectionHint">اختر ما سيتم توفيره لجميع أفراد المجموعة.</p>
+      <section className="formSection">
+        <h2>3. المنتج</h2>
+        <p className="sectionHint">اختر القماش ولون الوشاح لجميع أفراد المجموعة.</p>
+        {draft.orderType === "شراء" && (
           <div className="choiceGrid">
             <button type="button" className={draft.productType === "fullOutfit" ? "choice active" : "choice"}
               onClick={() => setDraft((d) => ({ ...d, productType: "fullOutfit" }))}>بدلة تخرج كاملة</button>
             <button type="button" className={draft.productType === "shawlAndCap" ? "choice active" : "choice"}
               onClick={() => setDraft((d) => ({ ...d, productType: "shawlAndCap" }))}>وشاح وقبعة فقط دون البدلة</button>
           </div>
-        </section>
-      )}
+        )}
+        <div className="fieldGrid">
+          <label>القماش
+            <select value={draft.fabric} onChange={(e) => setDraft((d) => ({ ...d, fabric: e.target.value as GroupOrderDraft["fabric"] }))}>
+              <option value="ساتان">ساتان</option><option value="موبرة">موبرة</option>
+            </select>
+          </label>
+          <label>لون الوشاح
+            <input value={draft.shawlColor} onChange={(e) => setDraft((d) => ({ ...d, shawlColor: e.target.value }))} maxLength={80} required />
+          </label>
+        </div>
+      </section>
 
       {draft.orderType === "شراء" && (
         <section className="formSection">
@@ -335,7 +351,7 @@ export default function GroupOrderClient() {
               <div className="referenceList">
                 {draft.referenceImages.map((url, index) => (
                   <div className="groupReferenceItem" key={url}>
-                    <a href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={`الصورة المرجعية ${index + 1}`} />عرض الصورة {index + 1}</a>
+                    <a href={url} target="_blank" rel="noopener noreferrer"><Image src={url} alt={`الصورة المرجعية ${index + 1}`} width={1200} height={900} unoptimized />عرض الصورة {index + 1}</a>
                     <button type="button" onClick={() => setDraft((d) => ({ ...d, referenceImages: d.referenceImages.filter((_, i) => i !== index) }))}>حذف ×</button>
                   </div>
                 ))}
