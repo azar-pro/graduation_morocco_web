@@ -48,7 +48,7 @@ export default function GroupOrderClient() {
   );
 
   function changeQuantity(value: number) {
-    const quantity = Math.max(1, Math.trunc(value || 1));
+    const quantity = Math.min(100, Math.max(5, Math.trunc(Number.isFinite(value) ? value : 5)));
     setDraft((d) => ({
       ...d,
       quantity,
@@ -153,7 +153,9 @@ export default function GroupOrderClient() {
             عدد الأفراد
             <input
               type="number"
-              min={1}
+              min={5}
+              max={100}
+              step={1}
               value={draft.quantity}
               onChange={(e) => changeQuantity(Number(e.target.value))}
               required
