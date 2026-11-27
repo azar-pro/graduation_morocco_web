@@ -38,7 +38,6 @@ export default function AdminGuard({
 
         if (!admin) {
           setAccessDenied(true);
-          await signOutAdmin();
           return;
         }
 
@@ -73,7 +72,10 @@ export default function AdminGuard({
         <section className="adminLoginCard">
           <h1>الحساب غير مفعّل للإدارة</h1>
           <p className="formError">تم تسجيل الخروج لأن الحساب لا يملك صلاحية الإدارة المطلوبة. يجب أن تحتوي وثيقة المستخدم في Firestore على role بقيمة admin و active بقيمة true.</p>
-          <button type="button" className="submitOrder" onClick={() => router.replace("/admin/login")}>العودة إلى تسجيل الدخول</button>
+          <button type="button" className="submitOrder" onClick={async () => {
+            await signOutAdmin();
+            router.replace("/admin/login");
+          }}>العودة إلى تسجيل الدخول</button>
         </section>
       </main>
     );
