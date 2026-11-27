@@ -4,6 +4,8 @@ import {
   Timestamp,
   type Firestore,
   type Transaction,
+  type DocumentReference,
+  type DocumentData,
 } from "firebase-admin/firestore";
 
 const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000;
@@ -20,7 +22,7 @@ export class RequestProtectionError extends Error {
 }
 
 export interface RequestProtection {
-  idempotencyRef: FirebaseFirestore.DocumentReference;
+  idempotencyRef: DocumentReference;
   payloadHash: string;
   replay: Record<string, unknown> | null;
 }
@@ -29,7 +31,7 @@ function sha256(value: string) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-function activeResponse(data: FirebaseFirestore.DocumentData | undefined) {
+function activeResponse(data: DocumentData | undefined) {
   const expiry = data?.expiresAt;
   return expiry && typeof expiry.toMillis === "function" && expiry.toMillis() > Date.now()
     ? data.response as Record<string, unknown>
