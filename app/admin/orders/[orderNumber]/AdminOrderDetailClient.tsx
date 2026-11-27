@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import AdminGuard from "../../AdminGuard";
@@ -7,6 +9,8 @@ import {
   loadAdminOrder,
   updateOrderPayment,
   updateOrderStatus,
+  confirmRentalDepositReceived,
+  settleRentalReturn,
   type AdminOrder,
 } from "@/lib/admin-data";
 
@@ -37,7 +41,7 @@ function text(value: unknown) {
   return s || "—";
 }
 
-export default function AdminOrderDetailClient() {
+function AdminOrderDetailContent() {
   const params = useParams<{ orderNumber: string }>();
   const router = useRouter();
   const orderNumber = decodeURIComponent(params.orderNumber);
@@ -45,6 +49,7 @@ export default function AdminOrderDetailClient() {
   const [loading,setLoading] = useState(true);
   const [message,setMessage] = useState("");
   const [saving,setSaving] = useState(false);
+  const [damageDeduction,setDamageDeduction] = useState("0");
 
   async function refresh() {
     setLoading(true);
@@ -96,12 +101,16 @@ export default function AdminOrderDetailClient() {
     const amount = window.prompt("المبلغ المحصل حتى الآن", String(order.amountPaid ?? 0));
     if (amount === null) return;
     const parsed = Number(amount);
-    if (!Number.isFinite(parsed) || parsed < 0) {
-      setMessage("المبلغ غير صالح.");
+    if (!Number.isSafeInteger(parsed) || parsed < 0) {
+      setMessage("أدخل مبلغًا صحيحًا بالدرهم دون كسور.");
       return;
     }
 
     const total = Number(order.totalPrice ?? 0);
+    if (!Number.isSafeInteger(total) || total < 0 || parsed > total) {
+      setMessage("المبلغ المحصل لا يمكن أن يتجاوز إجمالي الطلب.");
+      return;
+    }
     const paymentStatus =
       parsed <= 0 ? "pending" : parsed >= total ? "paid" : "partial";
 
@@ -115,8 +124,43 @@ export default function AdminOrderDetailClient() {
         totalPrice: total,
       });
       await refresh();
-    } catch {
-      setMessage("تعذر تحديث الدفع.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذر تحديث الدفع.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+
+  async function confirmRentalDeposit() {
+    if (!order) return;
+    setSaving(true);
+    setMessage("");
+    try {
+      await confirmRentalDepositReceived(String(order.orderNumber ?? order.id));
+      await refresh();
+      setMessage("تم تسجيل استلام ضمان الكراء.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذر تسجيل الضمان.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function settleRental() {
+    if (!order) return;
+    setSaving(true);
+    setMessage("");
+    try {
+      const result = await settleRentalReturn({
+        orderNumber: String(order.orderNumber ?? order.id),
+        damageDeduction: Number(damageDeduction),
+      });
+      await refresh();
+      setMessage(`تمت التسوية. المبلغ المعاد: ${money(result.refund)}.` +
+        (result.additionalDue > 0 ? ` المبلغ الإضافي المستحق بسبب الضرر: ${money(result.additionalDue)}.` : ""));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذرت تسوية إرجاع الكراء.");
     } finally {
       setSaving(false);
     }
@@ -130,8 +174,6 @@ export default function AdminOrderDetailClient() {
     : [];
 
   return (
-    <AdminGuard>
-      {() => (
         <main className="adminDetailPage">
           <div className="adminDetailTop">
             <button type="button" onClick={() => router.push("/admin")}>العودة</button>
@@ -185,18 +227,72 @@ export default function AdminOrderDetailClient() {
 
             <article className="adminDetailCard">
               <h2>الدفع</h2>
-              <dl>
-                <div><dt>الطريقة</dt><dd>{text(order.paymentMethod)}</dd></div>
-                <div><dt>الحالة</dt><dd>{paymentLabels[String(order.paymentStatus ?? "pending")] ?? text(order.paymentStatus)}</dd></div>
-                <div><dt>المحصل</dt><dd>{money(order.amountPaid)}</dd></div>
-                <div><dt>المتبقي</dt><dd>{money(order.remainingAmount)}</dd></div>
-                <div><dt>التسبيق المطلوب</dt><dd>{money(order.depositRequiredAmount)}</dd></div>
-              </dl>
-              <button type="button" className="adminAction" disabled={saving} onClick={() => void savePayment()}>
-                تحديث المبلغ المحصل
-              </button>
+              {String(order.orderType) === "كراء" ? (
+                <dl>
+                  <div><dt>طريقة دفع الضمان</dt><dd>{text(order.paymentMethod)}</dd></div>
+                  <div><dt>المبلغ المطلوب عند الاستلام</dt><dd>{money(Number(order.rentalSecurityDepositAmount ?? 0) + Number(order.deliveryFeeApplied ?? 0))}</dd></div>
+                  <div><dt>حالة الاستلام</dt><dd>{order.rentalDepositStatus === "collected" ? "تم استلام الضمان ورسوم التوصيل" : "بانتظار استلام الضمان ورسوم التوصيل"}</dd></div>
+                  {order.rentalDepositStatus === "collected" && <div><dt>المبلغ المستلم</dt><dd>{money(Number(order.rentalDepositCollectedAmount ?? 0) + Number(order.rentalDeliveryFeeCollectedAmount ?? 0))}</dd></div>}
+                </dl>
+              ) : (
+                <>
+                  <dl>
+                    <div><dt>الطريقة</dt><dd>{text(order.paymentMethod)}</dd></div>
+                    <div><dt>الحالة</dt><dd>{paymentLabels[String(order.paymentStatus ?? "pending")] ?? text(order.paymentStatus)}</dd></div>
+                    <div><dt>المحصل</dt><dd>{money(order.amountPaid)}</dd></div>
+                    <div><dt>المتبقي</dt><dd>{money(order.remainingAmount)}</dd></div>
+                    <div><dt>التسبيق المطلوب</dt><dd>{money(order.depositRequiredAmount)}</dd></div>
+                  </dl>
+                  <button type="button" className="adminAction" disabled={saving} onClick={() => void savePayment()}>
+                    تحديث المبلغ المحصل
+                  </button>
+                </>
+              )}
             </article>
           </section>
+
+
+          {String(order.orderType) === "كراء" && (
+            <section className="adminDetailCard">
+              <h2>ضمان الكراء وتسوية الإرجاع</h2>
+              <dl>
+                <div><dt>سعر الكراء المستحق</dt><dd>{money(order.rentalFeeAmount)}</dd></div>
+                <div><dt>الضمان المطلوب</dt><dd>{money(order.rentalSecurityDepositAmount)}</dd></div>
+                <div><dt>حالة الضمان</dt><dd>{String(order.rentalDepositStatus ?? "pending") === "collected" ? "تم استلام الضمان" : "لم يتم تسجيل استلام الضمان"}</dd></div>
+                <div><dt>حالة الإرجاع</dt><dd>{String(order.rentalReturnStatus ?? "awaiting_return") === "returned" ? "تم إرجاع البدلة" : "بانتظار إرجاع البدلة"}</dd></div>
+                {order.rentalReturnStatus === "returned" && <>
+                  <div><dt>خصم الضرر</dt><dd>{money(order.rentalDamageDeduction)}</dd></div>
+                  <div><dt>المبلغ المعاد للعميل</dt><dd>{money(order.rentalRefundAmount)}</dd></div>
+                  {Number(order.rentalAdditionalDamageDue ?? 0) > 0 && <div><dt>مبلغ إضافي مستحق بسبب الضرر</dt><dd>{money(order.rentalAdditionalDamageDue)}</dd></div>}
+                </>}
+              </dl>
+              {order.rentalDepositStatus !== "collected" && (
+                <div className="formNotice">
+                  <p>بعد التحقق من وصول مبلغ الضمان فعليًا، سجّل استلامه هنا.</p>
+                  <button type="button" className="adminAction" disabled={saving} onClick={() => void confirmRentalDeposit()}>
+                    تأكيد استلام الضمان ورسوم التوصيل ({money(Number(order.rentalSecurityDepositAmount ?? 0) + Number(order.deliveryFeeApplied ?? 0))})
+                  </button>
+                </div>
+              )}
+              {order.rentalDepositStatus === "collected" && order.rentalReturnStatus !== "returned" && (
+                <div className="fieldGrid">
+                  <label>خصم الضرر (درهم)
+                    <input type="number" min="0" step="1" value={damageDeduction} onChange={e=>setDamageDeduction(e.target.value)} disabled={saving}/>
+                  </label>
+                  <div>
+                    <p className="sectionHint">المبلغ المتوقع إعادته: {money(Math.max(0, Number(order.rentalDepositCollectedAmount ?? order.rentalSecurityDepositAmount ?? 0) - Number(order.rentalFeeAmount ?? 0) - Math.max(0, Number(damageDeduction) || 0)))}</p>
+                    {Number(damageDeduction) + Number(order.rentalFeeAmount ?? 0) > Number(order.rentalDepositCollectedAmount ?? order.rentalSecurityDepositAmount ?? 0) && (
+                      <p className="formError">يوجد مبلغ إضافي مستحق: {money(Number(damageDeduction) + Number(order.rentalFeeAmount ?? 0) - Number(order.rentalDepositCollectedAmount ?? order.rentalSecurityDepositAmount ?? 0))}</p>
+                    )}
+                    <p className="sectionHint">سيُخصم سعر الكراء تلقائيًا، ثم خصم الضرر الذي تدخله، ويُحسب المبلغ المتبقي لإعادته للعميل.</p>
+                    <button type="button" className="adminAction" disabled={saving || !Number.isFinite(Number(damageDeduction)) || Number(damageDeduction) < 0} onClick={() => void settleRental()}>
+                      تأكيد الإرجاع وحساب المبلغ المعاد
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
 
           <section className="adminDetailCard">
             <h2>الطباعة والتخصيص</h2>
@@ -222,7 +318,7 @@ export default function AdminOrderDetailClient() {
               <div className="adminImages">
                 {images.map((url) => (
                   <a href={url} target="_blank" rel="noreferrer" key={url}>
-                    <img src={url} alt="صورة مرجعية للطلب" />
+                    <Image src={url} alt="صورة مرجعية للطلب" width={1200} height={900} unoptimized />
                   </a>
                 ))}
               </div>
@@ -234,7 +330,9 @@ export default function AdminOrderDetailClient() {
             <p>{text(order.notes)}</p>
           </section>
         </main>
-      )}
-    </AdminGuard>
   );
+}
+
+export default function AdminOrderDetailClient() {
+  return <AdminGuard>{() => <AdminOrderDetailContent />}</AdminGuard>;
 }

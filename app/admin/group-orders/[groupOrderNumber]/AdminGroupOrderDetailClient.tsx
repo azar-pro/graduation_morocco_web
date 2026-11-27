@@ -1,11 +1,15 @@
 "use client";
 
+import Image from "next/image";
+
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import AdminGuard from "../../AdminGuard";
 import {
   loadAdminGroupOrder,
   updateGroupOrderStatus,
+  confirmGroupRentalDepositReceived,
+  settleGroupRentalReturn,
   type AdminGroupOrder,
 } from "@/lib/admin-data";
 
@@ -22,7 +26,22 @@ const labels: Record<string,string> = {
 
 function value(x: unknown){ const s=String(x??"").trim(); return s||"—"; }
 
-export default function AdminGroupOrderDetailClient(){
+function formatDateTime(input: unknown){
+  if (!input) return "—";
+  let date: Date | null = null;
+  if (input instanceof Date) date = input;
+  else if (typeof input === "object" && input !== null && "toDate" in input && typeof input.toDate === "function") {
+    date = input.toDate();
+  } else if (typeof input === "string" || typeof input === "number") {
+    const parsed = new Date(input);
+    if (Number.isFinite(parsed.getTime())) date = parsed;
+  }
+  return date && Number.isFinite(date.getTime())
+    ? date.toLocaleString("ar-MA", { timeZone: "Africa/Casablanca", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
+    : "—";
+}
+
+function AdminGroupOrderDetailContent(){
   const params=useParams<{groupOrderNumber:string}>();
   const router=useRouter();
   const groupOrderNumber=decodeURIComponent(params.groupOrderNumber);
@@ -30,17 +49,7 @@ export default function AdminGroupOrderDetailClient(){
   const [loading,setLoading]=useState(true);
   const [message,setMessage]=useState("");
   const [saving,setSaving]=useState(false);
-
-  async function refresh(){
-    setLoading(true);
-    try{
-      setOrder(await loadAdminGroupOrder(groupOrderNumber));
-    }catch{
-      setMessage("تعذر تحميل الطلب الجماعي.");
-    }finally{
-      setLoading(false);
-    }
-  }
+  const [damageDeduction,setDamageDeduction]=useState("0");
 
   useEffect(()=>{
     loadAdminGroupOrder(groupOrderNumber)
@@ -55,8 +64,6 @@ export default function AdminGroupOrderDetailClient(){
   const members=Array.isArray(order.members)?order.members.map(String):[];
 
   return (
-    <AdminGuard>
-      {()=>(
         <main className="adminDetailPage">
           <div className="adminDetailTop">
             <button type="button" onClick={()=>router.push("/admin")}>العودة</button>
@@ -104,6 +111,8 @@ export default function AdminGroupOrderDetailClient(){
               <h2>الموعد</h2>
               <dl>
                 <div><dt>طريقة الاستلام</dt><dd>{value(order.deliveryMethod)}</dd></div>
+                <div><dt>موعد الاستلام</dt><dd>{formatDateTime(order.scheduledAt)}</dd></div>
+                {Boolean(order.returnAt) && <div><dt>موعد إرجاع الكراء</dt><dd>{formatDateTime(order.returnAt)}</dd></div>}
                 <div><dt>ملاحظات</dt><dd>{value(order.notes)}</dd></div>
               </dl>
             </article>
@@ -151,7 +160,7 @@ export default function AdminGroupOrderDetailClient(){
                 <h2>الصور المرجعية</h2>
                 {Array.isArray(order.referenceImages) && order.referenceImages.length ? (
                   <div className="adminGroupReferenceGrid">
-                    {(order.referenceImages as string[]).map((url,index)=><a key={url} href={url} target="_blank" rel="noopener noreferrer">عرض الصورة {index+1}</a>)}
+                    {(order.referenceImages as string[]).map((url,index)=><a key={url} href={url} target="_blank" rel="noopener noreferrer"><Image src={url} alt={`الصورة المرجعية ${index+1}`} width={1200} height={900} unoptimized /><span>عرض الصورة {index+1}</span></a>)}
                   </div>
                 ) : <p>لا توجد صور مرجعية مرفقة.</p>}
               </section>
@@ -160,12 +169,61 @@ export default function AdminGroupOrderDetailClient(){
 
           {String(order.orderType)==="كراء" && (
             <section className="adminDetailCard">
-              <h2>تفاصيل الكراء</h2>
-              <p>هذا الطلب لا يحتوي أسماء أفراد أو تخصيص طباعة أو صور مرجعية، والعودة بعد 24 ساعة من موعد الاستلام وفق قواعد الطلب الحالية.</p>
+              <h2>تفاصيل الكراء والضمان</h2>
+              <dl>
+                <div><dt>القماش</dt><dd>{value(order.fabric)}</dd></div>
+                <div><dt>لون الوشاح</dt><dd>{value(order.shawlColor)}</dd></div>
+                <div><dt>ثمن الكراء للبدلة الواحدة</dt><dd>{Number(order.unitPriceApplied??0)} درهم</dd></div>
+                <div><dt>مجموع ثمن الكراء</dt><dd>{Number(order.rentalFeeAmount??order.productTotalEstimate??0)} درهم</dd></div>
+                <div><dt>الضمان للبدلة الواحدة</dt><dd>{Number(order.rentalSecurityDepositUnit??0)} درهم</dd></div>
+                <div><dt>مجموع ضمان المجموعة</dt><dd>{Number(order.rentalSecurityDepositAmount??0)} درهم</dd></div>
+                <div><dt>رسوم التوصيل</dt><dd>{Number(order.deliveryFeeApplied??0)} درهم</dd></div>
+                <div><dt>المبلغ المطلوب عند الاستلام</dt><dd>{Number(order.amountDueNowEstimate??(Number(order.rentalSecurityDepositAmount??0)+Number(order.deliveryFeeApplied??0)))} درهم</dd></div>
+                <div><dt>حالة استلام الضمان</dt><dd>{value(order.rentalDepositStatus)==="pending"?"لم يتم تسجيل الاستلام":value(order.rentalDepositStatus)}</dd></div>
+                {order.rentalDepositStatus==="collected" && <div><dt>المبلغ المسجل استلامه</dt><dd>{Number(order.rentalDepositCollectedAmount??0)+Number(order.rentalDeliveryFeeCollectedAmount??0)} درهم</dd></div>}
+                <div><dt>حالة الإرجاع</dt><dd>{value(order.rentalReturnStatus)}</dd></div>
+              </dl>
+              <p>يُخصم مجموع ثمن الكراء وأي تعويض عن الضرر من الضمان بعد إرجاع المجموعة، ثم يُعاد المتبقي.</p>
+              {order.rentalDepositStatus !== "collected" && (
+                <button type="button" disabled={saving} onClick={async()=>{
+                  setSaving(true); setMessage("");
+                  try {
+                    await confirmGroupRentalDepositReceived(String(order.groupOrderNumber??order.id));
+                    setOrder({...order,rentalDepositStatus:"collected",rentalDepositCollectedAmount:Number(order.rentalSecurityDepositAmount??0),rentalDeliveryFeeCollectedAmount:Number(order.deliveryFeeApplied??0)});
+                  } catch(error) { setMessage(error instanceof Error ? error.message : "تعذر تسجيل استلام الضمان."); }
+                  finally { setSaving(false); }
+                }}>تسجيل استلام ضمان المجموعة</button>
+              )}
+              {order.rentalDepositStatus === "collected" && order.rentalReturnStatus !== "returned" && (
+                <div className="formSection">
+                  <label>خصم الضرر للمجموعة كاملة (درهم)
+                    <input type="number" min="0" step="1" value={damageDeduction} onChange={e=>setDamageDeduction(e.target.value)} disabled={saving} />
+                  </label>
+                  <button type="button" disabled={saving || !Number.isSafeInteger(Number(damageDeduction)) || Number(damageDeduction)<0}
+                    onClick={async()=>{
+                      if(!window.confirm("تأكيد إرجاع المجموعة وتسوية الضمان؟ لا يمكن تكرار هذه العملية بعد الحفظ.")) return;
+                      setSaving(true); setMessage("");
+                      try {
+                        const result=await settleGroupRentalReturn({groupOrderNumber:String(order.groupOrderNumber??order.id),damageDeduction:Number(damageDeduction)});
+                        setOrder({...order,rentalReturnStatus:"returned",rentalDamageDeduction:result.damage,rentalRefundAmount:result.refund,rentalAdditionalDamageDue:result.additionalDue,rentalSettlementStatus:"settled"});
+                      } catch(error) { setMessage(error instanceof Error ? error.message : "تعذرت تسوية إرجاع المجموعة."); }
+                      finally { setSaving(false); }
+                    }}>تأكيد إرجاع المجموعة وتسوية الضمان</button>
+                </div>
+              )}
+              {order.rentalReturnStatus === "returned" && (
+                <dl>
+                  <div><dt>خصم الضرر</dt><dd>{Number(order.rentalDamageDeduction??0)} درهم</dd></div>
+                  <div><dt>المبلغ المسترد</dt><dd>{Number(order.rentalRefundAmount??0)} درهم</dd></div>
+                  <div><dt>مبلغ إضافي مستحق</dt><dd>{Number(order.rentalAdditionalDamageDue??0)} درهم</dd></div>
+                </dl>
+              )}
             </section>
           )}
         </main>
-      )}
-    </AdminGuard>
   );
+}
+
+export default function AdminGroupOrderDetailClient() {
+  return <AdminGuard>{() => <AdminGroupOrderDetailContent />}</AdminGuard>;
 }

@@ -26,6 +26,8 @@ export type ShopSettings = {
   fullPaymentEnabled: boolean;
   paymentDeadlineHours: number;
   depositPercentage: number;
+  rentalSecurityDepositSatin: number;
+  rentalSecurityDepositMoubara: number;
 };
 
 export type OrderRules = {

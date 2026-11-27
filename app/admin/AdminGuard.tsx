@@ -13,6 +13,7 @@ export default function AdminGuard({
   const [profile, setProfile] = useState<AdminProfile | null>(null);
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState("");
+  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -22,6 +23,7 @@ export default function AdminGuard({
 
       setChecking(true);
       setError("");
+      setAccessDenied(false);
       setProfile(null);
 
       if (!user) {
@@ -35,16 +37,19 @@ export default function AdminGuard({
         if (!mounted) return;
 
         if (!admin) {
-          await signOutAdmin();
-          if (!mounted) return;
-          router.replace("/admin/login");
+          setAccessDenied(true);
           return;
         }
 
         setProfile(admin);
-      } catch {
+      } catch (cause) {
         if (mounted) {
-          setError("تعذر التحقق من صلاحية الحساب الإداري. تحقق من اتصال Firebase وصلاحيات قراءة ملف المستخدم، ثم أعد المحاولة.");
+          const code = cause instanceof Error && "code" in cause
+            ? String((cause as Error & { code?: unknown }).code ?? "")
+            : "";
+          setError(code === "permission-denied"
+            ? "تم تسجيل الدخول، لكن Firestore رفض قراءة صلاحيات هذا الحساب. تأكد من وجود وثيقة users/{uid} وأن الحساب يحمل role=admin و active=true، ثم تحقق من قواعد Firestore المنشورة."
+            : "تعذر التحقق من صلاحية الحساب الإداري. تحقق من إعدادات Firebase والاتصال بالإنترنت، ثم أعد المحاولة.");
         }
       } finally {
         if (mounted) setChecking(false);
@@ -58,7 +63,22 @@ export default function AdminGuard({
   }, [router]);
 
   if (checking) {
-    return <main className="adminCenter"><p>جاري التحقق من صلاحية الإدارة…</p></main>;
+    return <main className="adminCenter" role="status"><p>جاري التحقق من صلاحية الإدارة…</p></main>;
+  }
+
+  if (accessDenied) {
+    return (
+      <main className="adminCenter" role="alert">
+        <section className="adminLoginCard">
+          <h1>الحساب غير مفعّل للإدارة</h1>
+          <p className="formError">تم تسجيل الخروج لأن الحساب لا يملك صلاحية الإدارة المطلوبة. يجب أن تحتوي وثيقة المستخدم في Firestore على role بقيمة admin و active بقيمة true.</p>
+          <button type="button" className="submitOrder" onClick={async () => {
+            await signOutAdmin();
+            router.replace("/admin/login");
+          }}>العودة إلى تسجيل الدخول</button>
+        </section>
+      </main>
+    );
   }
 
   if (error) {

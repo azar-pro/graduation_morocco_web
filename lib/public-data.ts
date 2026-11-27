@@ -26,6 +26,8 @@ export const DEFAULT_SHOP: ShopSettings = {
   fullPaymentEnabled: true,
   paymentDeadlineHours: 48,
   depositPercentage: 50,
+  rentalSecurityDepositSatin: 250,
+  rentalSecurityDepositMoubara: 300,
 };
 
 export const DEFAULT_RULES: OrderRules = {
@@ -73,6 +75,8 @@ export async function loadShopSettings(): Promise<ShopSettings> {
     fullPaymentEnabled: bool(d.fullPaymentEnabled, true),
     paymentDeadlineHours: integer(d.paymentDeadlineHours, 48),
     depositPercentage: integer(d.depositPercentage, 50),
+    rentalSecurityDepositSatin: Math.max(0, integer(d.rentalSecurityDepositSatin, 250)),
+    rentalSecurityDepositMoubara: Math.max(0, integer(d.rentalSecurityDepositMoubara, 300)),
   };
 }
 

@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  doc,
-  runTransaction,
-  serverTimestamp,
-  Timestamp,
-} from "firebase/firestore";
 import { DateTime } from "luxon";
-import { db } from "@/lib/firebase";
 import type {
   DeliveryCity,
   OrderRules,
@@ -57,6 +50,8 @@ export type OrderQuote = {
   productPrice: number;
   deliveryFee: number;
   total: number;
+  rentalSecurityDeposit: number;
+  amountDueNow: number;
   deliveryDocumentId: string;
 };
 
@@ -71,6 +66,7 @@ export function quoteOrder(
   products: PublicProduct[],
   cities: DeliveryCity[],
   order: OrderDraft,
+  shop: ShopSettings,
 ): OrderQuote {
   const product = products.find((x) => x.productType === order.productType);
   if (!product) throw new Error("المنتج المحدد غير متاح حاليًا.");
@@ -100,11 +96,19 @@ export function quoteOrder(
     }
   }
 
+  const rentalSecurityDeposit = order.orderType === "كراء"
+    ? Math.max(0, Math.round(order.fabric === "ساتان"
+      ? shop.rentalSecurityDepositSatin
+      : shop.rentalSecurityDepositMoubara))
+    : 0;
+  const total = productPrice + deliveryFee;
   return {
     product,
     productPrice,
     deliveryFee,
-    total: productPrice + deliveryFee,
+    total,
+    rentalSecurityDeposit,
+    amountDueNow: order.orderType === "كراء" ? rentalSecurityDeposit + deliveryFee : total,
     deliveryDocumentId,
   };
 }
@@ -221,7 +225,7 @@ function validateOrder(
     }
   }
 
-  if (order.paymentMethod !== "cash_at_store") {
+  if (order.paymentMethod !== "cash_at_store" && order.orderType !== "كراء") {
     if (order.bankTransferPlan === "deposit" && !shop.depositPaymentEnabled) {
       throw new Error("خيار التسبيق غير متاح حاليًا.");
     }
@@ -243,156 +247,26 @@ export async function submitOrder(args: {
   shop: ShopSettings;
   rules: OrderRules;
 }) {
-  const { draft, products, cities, shop, rules } = args;
-  const quote = quoteOrder(products, cities, draft);
-  const normalized = validateOrder(draft, shop, rules, quote);
-  const scheduled = normalized.scheduled;
-  const isProofPayment = draft.paymentMethod !== "cash_at_store";
-  const year = DateTime.now().setZone(TZ).year;
+  // Keep the immediate client-side feedback, but the server independently
+  // reloads trusted catalog/settings and recalculates every amount.
+  const quote = quoteOrder(args.products, args.cities, args.draft, args.shop);
+  validateOrder(args.draft, args.shop, args.rules, quote);
 
-  const counterRef = doc(db, "order_number_counters", String(year));
-  const phoneLookupRef = doc(db, "tracking_phone_lookup", normalized.phone);
-
-  const orderNumber = await runTransaction(db, async (transaction) => {
-    const [counterSnap, phoneLookupSnap] = await Promise.all([
-      transaction.get(counterRef),
-      transaction.get(phoneLookupRef),
-    ]);
-
-    const initial = year === 2026 ? 17 : 0;
-    const stored = counterSnap.exists()
-      ? Number(counterSnap.data().lastNumber ?? initial)
-      : initial;
-    const next = stored + 1;
-    const number = `GM-${year}-${String(next).padStart(6, "0")}`;
-
-    const orderRef = doc(db, "orders", number);
-    const trackingRef = doc(db, "order_tracking", number);
-
-    const returnAt = scheduled.plus({ hours: 24 });
-    const returnDate = draft.orderType === "كراء"
-      ? returnAt.setZone(TZ).toFormat("yyyy-MM-dd")
-      : null;
-    const returnTime = draft.orderType === "كراء"
-      ? returnAt.setZone(TZ).toFormat("HH:mm")
-      : "";
-
-    const deadlineHours = Math.max(1, Math.min(720, shop.paymentDeadlineHours));
-    const depositPercentage = Math.max(1, Math.min(100, shop.depositPercentage));
-    const depositAmount = draft.bankTransferPlan === "deposit" && isProofPayment
-      ? quote.total * depositPercentage / 100
-      : null;
-
-    const rightShawl = draft.orderType === "شراء" ? normalizedPrinting(draft.rightShawl) : disabledPrinting();
-    const leftShawl = draft.orderType === "شراء" ? normalizedPrinting(draft.leftShawl) : disabledPrinting();
-    const backShawl = draft.orderType === "شراء" ? normalizedPrinting(draft.backShawl) : disabledPrinting();
-    const cap = draft.orderType === "شراء" && draft.productType !== "shawlOnly"
-      ? normalizedPrinting(draft.cap)
-      : disabledPrinting();
-
-    const orderData: Record<string, unknown> = {
-      orderNumber: number,
-      status: "received",
-      paymentStatus: "pending",
-      paymentMethod: draft.paymentMethod,
-      bankTransferPlan: isProofPayment ? draft.bankTransferPlan : "",
-      paymentProvider:
-        draft.paymentMethod === "cash_transfer_agency" ? draft.paymentProvider : "",
-      paymentDeadline: null,
-      totalPrice: quote.total,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      gender: draft.productType === "shawlOnly" ? "" : draft.gender,
-      orderType: draft.orderType,
-      productType: draft.productType,
-      catalogProductId: quote.product.id,
-      catalogProductNameAr: quote.product.nameAr,
-      catalogProductNameEn: quote.product.nameEn ?? "",
-      fabric: draft.fabric,
-      shawlColor: draft.shawlColor.trim(),
-      notes: draft.notes.trim(),
-      deliveryMethod: draft.deliveryMethod,
-      fullName: normalized.fullName,
-      phoneNumber: normalized.phone,
-      city: draft.city,
-      address: draft.deliveryMethod === "pickup" ? "" : normalized.address,
-      deliveryNotes: draft.deliveryNotes.trim(),
-      deliveryDate: draft.deliveryDate,
-      deliveryTime: draft.deliveryTime,
-      returnDate,
-      returnTime,
-      urgentOrder: false,
-      deliveryFee: quote.deliveryFee,
-      fesArea: null,
-      rightShawl,
-      leftShawl,
-      backShawl,
-      cap,
-      referenceImages: draft.orderType === "شراء" ? draft.referenceImages : [],
-      productPriceApplied: quote.productPrice,
-      deliveryFeeApplied: quote.deliveryFee,
-      deliveryPricingDocumentId: quote.deliveryDocumentId,
-      amountPaid: 0,
-      remainingAmount: quote.total,
-      trackingPhoneKey: normalized.phone,
-      scheduledAt: Timestamp.fromDate(scheduled.toUTC().toJSDate()),
-      purchasePreparationDaysApplied: rules.purchasePreparationDays,
-      rentalAdvanceHoursApplied: rules.rentalAdvanceHours,
-      scheduleTimeZone: TZ,
-    };
-
-    if (draft.orderType === "كراء") {
-      orderData.returnAt = Timestamp.fromDate(returnAt.toUTC().toJSDate());
-    }
-
-    if (isProofPayment) {
-      orderData.paymentDeadlineHoursApplied = deadlineHours;
-      orderData.paymentDeadlineTimeZone = TZ;
-      if (draft.bankTransferPlan === "deposit") {
-        orderData.depositPercentageApplied = depositPercentage;
-        orderData.depositRequiredAmount = depositAmount;
-      }
-    }
-
-    transaction.set(counterRef, {
-      lastNumber: next,
-      reconciledWithSavedOrders: true,
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
-
-    transaction.set(orderRef, orderData);
-    transaction.set(trackingRef, {
-      orderNumber: number,
-      status: "received",
-      orderType: draft.orderType,
-      productType: draft.productType,
-      createdAt: serverTimestamp(),
-      ...(isProofPayment ? { paymentDeadlineHoursApplied: deadlineHours } : {}),
-      updatedAt: serverTimestamp(),
-    });
-
-    const existing = phoneLookupSnap.exists() ? phoneLookupSnap.data() : {};
-    const previous = new Set<string>();
-    const raw = existing.orderNumbers;
-    if (Array.isArray(raw)) {
-      raw.forEach((x) => {
-        const value = String(x ?? "");
-        if (/^GM-[0-9]{4}-[0-9]{6}$/.test(value)) previous.add(value);
-      });
-    } else if (typeof existing.orderNumber === "string") {
-      previous.add(existing.orderNumber);
-    }
-    previous.add(number);
-
-    transaction.set(phoneLookupRef, {
-      orderNumber: number,
-      latestOrderNumber: number,
-      orderNumbers: [...previous],
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
-
-    return number;
-  }, { maxAttempts: 10 });
-
-  return { orderNumber, quote };
+  const response = await fetch("/api/orders", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ draft: args.draft }),
+  });
+  const payload = await response.json().catch(() => ({})) as {
+    orderNumber?: string;
+    error?: string;
+    quote?: Partial<OrderQuote>;
+  };
+  if (!response.ok || !payload.orderNumber) {
+    throw new Error(payload.error || "تعذر إرسال الطلب.");
+  }
+  return {
+    orderNumber: payload.orderNumber,
+    quote: { ...quote, ...payload.quote },
+  };
 }
