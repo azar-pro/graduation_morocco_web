@@ -99,12 +99,16 @@ function AdminOrderDetailContent() {
     const amount = window.prompt("المبلغ المحصل حتى الآن", String(order.amountPaid ?? 0));
     if (amount === null) return;
     const parsed = Number(amount);
-    if (!Number.isFinite(parsed) || parsed < 0) {
-      setMessage("المبلغ غير صالح.");
+    if (!Number.isSafeInteger(parsed) || parsed < 0) {
+      setMessage("أدخل مبلغًا صحيحًا بالدرهم دون كسور.");
       return;
     }
 
     const total = Number(order.totalPrice ?? 0);
+    if (!Number.isSafeInteger(total) || total < 0 || parsed > total) {
+      setMessage("المبلغ المحصل لا يمكن أن يتجاوز إجمالي الطلب.");
+      return;
+    }
     const paymentStatus =
       parsed <= 0 ? "pending" : parsed >= total ? "paid" : "partial";
 
@@ -118,8 +122,8 @@ function AdminOrderDetailContent() {
         totalPrice: total,
       });
       await refresh();
-    } catch {
-      setMessage("تعذر تحديث الدفع.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "تعذر تحديث الدفع.");
     } finally {
       setSaving(false);
     }
